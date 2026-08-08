@@ -625,10 +625,13 @@ const demoFrameBox = document.getElementById('demoFrame');
 let demoIframe = null;
 function fitDemo(){
   if(!demoIframe) return;
-  const s = demoFrameBox.clientWidth / 1280;
+  const w = demoFrameBox.clientWidth;
+  if(w < 50) return; /* container not laid out yet — the observer below retries */
+  const s = w / 1280;
   demoIframe.style.transform = 'scale(' + s + ')';
   demoIframe.style.height = (demoFrameBox.clientHeight / s) + 'px';
 }
+if('ResizeObserver' in window) new ResizeObserver(fitDemo).observe(demoFrameBox);
 document.getElementById('demoShield').addEventListener('click', () => {
   if(demoIframe) return;
   demoIframe = document.createElement('iframe');
