@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>KONEKT OS — российская настольная операционная система</title>
+<meta name="description" content="KONEKT OS — настольная операционная система, которую выбирают, а не назначают. Ядро Linux LTS, атомарные обновления, собственный шелл, ГОСТ из коробки. NKO Intl. Foundation of Technological Research &amp; Development.">
+<meta property="og:title" content="KONEKT OS">
+<meta property="og:description" content="Российская настольная ОС: дизайн как система, атомарные обновления, ГОСТ из коробки.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-56 -56 112 112"><rect x="-56" y="-56" width="112" height="112" fill="black"/><g fill="none" stroke="white" stroke-width="7.4"><circle r="50"/><ellipse rx="18" ry="50"/><ellipse rx="36.5" ry="50"/><line y1="-50" y2="50"/><line x1="-48.7" y1="0" x2="48.7" y2="0"/><line x1="-43.8" y1="21.5" x2="43.8" y2="21.5"/><line x1="-43.8" y1="-21.5" x2="43.8" y2="-21.5"/></g></svg>'>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>
+/* ============ KONEKT tokens — black, cubic, hairlines ============ */
+:root{
+  --bg:#000000;
+  --hover:#0d0d0d;
+  --hover-2:#141414;
+  --line:#434343;
+  --line-2:#666666;
+  --line-3:#232323;
+  --text:#ffffff;
+  --text-2:#d8d8d8;
+  --dim:#999999;
+  --dim-2:#6f6f6f;
+  --accent:#1d9bf0;
+  --repost:#00ba7c;
+  --warn:#ffd400;
+  --danger:#f4212e;
+  --font:'Montserrat','Segoe UI',Arial,Helvetica,sans-serif;
+  --mono:'Cascadia Mono','Consolas',ui-monospace,'Menlo',monospace;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
+}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--font);font-size:15px;line-height:1.55;font-weight:400;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:0;padding:0}
+img,svg{display:block}
+::selection{background:var(--text);color:var(--bg)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+.lg{display:inline-flex;align-items:center;gap:.14em;font-weight:800;letter-spacing:.02em;line-height:1;color:var(--text)}
+.dim{color:var(--dim)}
+
+/* ============ top strip ============ */
+#top{
+  position:sticky;top:0;z-index:100;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line-3);
+}
+#top .row{display:flex;align-items:center;gap:26px;height:56px}
+#top nav{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+#top nav::-webkit-scrollbar{display:none}
+#top nav a{
+  color:var(--dim);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  padding:8px 12px;white-space:nowrap;
+}
+#top nav a:hover{color:var(--text);background:var(--hover-2);text-decoration:none}
+.lang{display:flex;border:1px solid var(--line-2)}
+.lang button{
+  padding:6px 11px;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--dim);
+}
+.lang button+button{border-left:1px solid var(--line-2)}
+.lang button.on{background:var(--text);color:var(--bg)}
+.lang button:not(.on):hover{color:var(--text)}
+.btn-solid{
+  background:var(--text);color:var(--bg);font-weight:700;font-size:10.5px;
+  letter-spacing:.14em;text-transform:uppercase;padding:11px 20px;display:inline-block;text-align:center;
+}
+.btn-solid:hover{background:#d6d6d6;text-decoration:none;color:var(--bg)}
+.btn-line{
+  border:1px solid var(--line-2);color:var(--text);font-weight:700;font-size:10.5px;
+  letter-spacing:.14em;text-transform:uppercase;padding:11px 20px;display:inline-block;text-align:center;
+}
+.btn-line:hover{background:var(--hover-2);text-decoration:none}
+
+/* ============ hero ============ */
+#hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line-3)}
+#heroGlobe{position:absolute;right:-140px;bottom:-180px;color:#131313;pointer-events:none}
+#hero .inner{position:relative;padding:92px 0 70px}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+  padding:7px 13px;font-size:9.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+  margin-bottom:30px;
+}
+.badge i{width:6px;height:6px;background:var(--repost);display:block}
+h1{
+  margin:0 0 22px;font-size:clamp(34px,6.2vw,64px);line-height:1.04;font-weight:800;letter-spacing:.01em;
+  text-transform:uppercase;max-width:820px;
+}
+.sub{max-width:640px;color:var(--dim);font-size:clamp(15px,1.8vw,17.5px);line-height:1.65;margin:0 0 38px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap}
+
+/* demo frame */
+#demoWrap{margin:76px auto 0;max-width:960px}
+#demoFrame{
+  border:1px solid var(--line-2);background:#000;position:relative;overflow:hidden;
+  aspect-ratio:16/10;
+}
+#demoFrame .shield{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;background:#000;z-index:3;cursor:pointer;border:0;width:100%;
+}
+#demoFrame .shield:hover{background:#070707}
+#demoFrame .shield .play{
+  width:64px;height:64px;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;
+}
+#demoFrame .shield:hover .play{border-color:var(--text)}
+#demoFrame .shield .t{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+#demoFrame iframe{position:absolute;left:0;top:0;width:1280px;height:800px;border:0;transform-origin:0 0}
+#demoBar{
+  display:flex;justify-content:space-between;align-items:center;padding:10px 2px;gap:14px;flex-wrap:wrap;
+  font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim-2);
+}
+#demoBar a{color:var(--dim)}
+#demoBar a:hover{color:var(--text)}
+
+/* ============ sections ============ */
+section{border-bottom:1px solid var(--line-3)}
+.sec{padding:84px 0}
+.sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:46px}
+.sec-num{font-family:var(--mono);font-size:12px;color:var(--dim-2);letter-spacing:.1em}
+h2{
+  margin:0;font-size:clamp(22px,3.4vw,34px);font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+}
+.sec-sub{max-width:680px;color:var(--dim);margin:-30px 0 46px;font-size:15px;line-height:1.65}
+
+/* why */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3)}
+.why{background:var(--bg);padding:30px 26px}
+.why .n{font-size:clamp(30px,4vw,44px);font-weight:800;line-height:1;margin-bottom:14px}
+.why .n em{font-style:normal;color:var(--dim-2)}
+.why h3{margin:0 0 10px;font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.why p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.65}
+
+/* architecture */
+.arch{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3)}
+.a-card{background:var(--bg);padding:28px 26px;display:flex;flex-direction:column;gap:12px}
+.a-card:hover{background:var(--hover)}
+.a-top{display:flex;align-items:center;gap:14px}
+.a-ic{width:38px;height:38px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text);flex:none}
+.a-ic svg{width:18px;height:18px}
+.a-card h3{margin:0;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.a-card .tag{font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.04em}
+.a-card p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.7}
+.a-card p b{color:var(--text-2);font-weight:600}
+
+/* design principles */
+.prin{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3)}
+.p-cell{background:var(--bg);padding:26px 22px}
+.p-cell h3{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.p-cell p{margin:0;color:var(--dim);font-size:12.5px;line-height:1.6}
+.p-demo{margin-top:46px;border:1px solid var(--line-3);padding:34px;display:flex;gap:40px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.p-demo .sw{display:flex;gap:10px}
+.p-demo .sw i{width:26px;height:26px;display:block}
+.p-demo .type{font-size:26px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1.15}
+.p-demo .type span{display:block;font-size:10px;font-weight:700;letter-spacing:.22em;color:var(--dim-2);margin-top:8px}
+
+/* compatibility */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  border:1px solid var(--line);padding:9px 15px;font-size:11.5px;font-weight:600;
+  letter-spacing:.06em;color:var(--text-2);display:inline-flex;align-items:center;gap:8px;
+}
+.chip i{width:5px;height:5px;background:var(--repost);display:block;flex:none}
+.chip.web i{background:var(--accent)}
+.chip.wine i{background:var(--warn)}
+.legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:20px}
+.legend span{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim-2)}
+.legend i{width:5px;height:5px;display:block}
+.note{margin-top:26px;border-left:2px solid var(--line);padding:4px 0 4px 18px;color:var(--dim);font-size:13px;line-height:1.7;max-width:680px}
+
+/* roadmap */
+.road{border:1px solid var(--line-3)}
+.r-row{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--line-3)}
+.r-row:last-child{border-bottom:0}
+.r-left{
+  padding:24px 22px;border-right:1px solid var(--line-3);
+  font-family:var(--mono);font-size:11px;color:var(--dim-2);letter-spacing:.08em;text-transform:uppercase;
+}
+.r-left .st{display:inline-flex;align-items:center;gap:8px}
+.r-left i{width:6px;height:6px;display:block;background:var(--line)}
+.r-row.done .r-left i{background:var(--repost)}
+.r-row.now .r-left i{background:var(--warn)}
+.r-main{padding:24px 26px}
+.r-main h3{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.r-main p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.7;max-width:720px}
+
+/* faq */
+.faq{border:1px solid var(--line-3)}
+.q{border-bottom:1px solid var(--line-3)}
+.q:last-child{border-bottom:0}
+.q>button{
+  width:100%;display:flex;justify-content:space-between;align-items:center;gap:20px;
+  padding:20px 24px;text-align:left;font-size:14px;font-weight:600;letter-spacing:.02em;
+}
+.q>button:hover{background:var(--hover)}
+.q>button .x{font-family:var(--mono);color:var(--dim-2);flex:none;transition:transform .18s}
+.q.open>button .x{transform:rotate(45deg)}
+.q .a{display:none;padding:0 24px 22px;color:var(--dim);font-size:13.5px;line-height:1.75;max-width:760px}
+.q.open .a{display:block}
+
+/* footer */
+footer{padding:60px 0 80px;color:var(--dim-2)}
+.f-grid{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap}
+.f-fam{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;max-width:420px}
+.f-fam span{border:1px solid var(--line-3);padding:5px 10px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim-2)}
+.f-right{text-align:right;font-size:11.5px;line-height:2}
+footer .lg{color:var(--text)}
+.f-note{margin-top:34px;padding-top:22px;border-top:1px solid var(--line-3);font-size:10.5px;letter-spacing:.06em;line-height:1.8}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none}}
+
+@media (max-width:860px){
+  .grid3,.prin{grid-template-columns:1fr 1fr}
+  .arch{grid-template-columns:1fr}
+}
+@media (max-width:600px){
+  .grid3,.prin{grid-template-columns:1fr}
+  .r-row{grid-template-columns:1fr}
+  .r-left{border-right:0;border-bottom:1px dashed var(--line-3);padding-bottom:12px}
+  #top .row{gap:12px}
+  .f-right{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="wrap row">
+    <span class="lg" style="font-size:19px" id="mark"></span>
+    <nav>
+      <a href="#why" data-i18n="nav_why">Зачем</a>
+      <a href="#arch" data-i18n="nav_arch">Архитектура</a>
+      <a href="#design" data-i18n="nav_design">Дизайн</a>
+      <a href="#compat" data-i18n="nav_compat">Совместимость</a>
+      <a href="#road" data-i18n="nav_road">Дорожная карта</a>
+      <a href="#faq" data-i18n="nav_faq">Вопросы</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Язык / Language">
+      <button id="lRu" class="on">RU</button><button id="lEn">EN</button>
+    </div>
+    <a class="btn-solid" href="demo.html" data-i18n="nav_demo">Демо</a>
+  </div>
+</header>
+
+<div id="hero">
+  <div id="heroGlobe"></div>
+  <div class="wrap inner">
+    <div class="badge"><i></i><span data-i18n="badge">KONEKT OS 2.0 · в разработке · NKO</span></div>
+    <h1 data-i18n="h1">Настольная операционная система, которую выбирают, а&nbsp;не&nbsp;назначают.</h1>
+    <p class="sub" data-i18n="h1sub">Российская альтернатива Windows и macOS. Не форк ради сертификата и не тема поверх чужого рабочего стола — операционная система как продукт: ядро Linux LTS, атомарные обновления, собственный шелл и дизайн-система, ГОСТ и Госуслуги из коробки.</p>
+    <div class="cta-row">
+      <a class="btn-solid" href="#demo" id="ctaDemo" data-i18n="cta_demo">Попробовать концепт в браузере</a>
+      <a class="btn-line" href="#road" data-i18n="cta_road">Дорожная карта</a>
+      <a class="btn-line" href="mailto:os@konekt.world?subject=KONEKT%20OS" data-i18n="cta_mail">Написать нам</a>
+    </div>
+
+    <div id="demoWrap">
+      <div id="demoFrame">
+        <button class="shield" id="demoShield" aria-label="Запустить демо">
+          <span class="play" id="demoPlayIc"></span>
+          <span class="t" data-i18n="demo_run">Запустить концепт-шелл · прямо здесь</span>
+        </button>
+      </div>
+      <div id="demoBar">
+        <span data-i18n="demo_note">Концепт-шелл KonektOS 1.4 — один HTML-файл, всё хранится локально</span>
+        <a href="demo.html" target="_blank" rel="noopener" data-i18n="demo_full">Открыть на весь экран →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section id="why">
+  <div class="wrap sec">
+    <div class="sec-head rv"><span class="sec-num">01</span><h2 data-i18n="why_h">Зачем ещё одна ОС</h2></div>
+    <div class="grid3 rv">
+      <div class="why">
+        <div class="n">91<em>%</em></div>
+        <h3 data-i18n="why1_h">российских десктопов — Windows</h3>
+        <p data-i18n="why1_p">Чаще всего — пиратская. Лицензии ушли, привычка осталась. Людям не предложили систему, ради которой стоит переучиваться: предложили только «импортозамещение».</p>
+      </div>
+      <div class="why">
+        <div class="n">98<em>%</em></div>
+        <h3 data-i18n="why2_h">рынка отечественных ОС — сертификаты</h3>
+        <p data-i18n="why2_p">Три вендора делят почти весь рынок, и весь он — закупки по требованиям. Это системы, которые назначают приказом. Ни одну из них не ставят себе домой по любви.</p>
+      </div>
+      <div class="why">
+        <div class="n">0</div>
+        <h3 data-i18n="why3_h">дизайн-ориентированных ОС в стране</h3>
+        <p data-i18n="why3_p">Ни у одной российской системы нет собственного языка интерфейса: поверх чужих рабочих столов — обои и иконки. KONEKT OS начинается с дизайн-системы, а не заканчивается ею.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="wrap sec">
+    <div class="sec-head rv"><span class="sec-num">02</span><h2 data-i18n="arch_h">Как она устроена</h2></div>
+    <p class="sec-sub rv" data-i18n="arch_sub">Мы не пишем ядро с нуля — это дорога, на которой проекты стареют, не родившись. Вся инженерная энергия уходит туда, где живёт ощущение macOS: в слой опыта. Основание — проверенное и скучное, намеренно.</p>
+    <div class="arch rv">
+      <div class="a-card">
+        <div class="a-top"><span class="a-ic" data-ic="kernel"></span><h3 data-i18n="a1_h">Ядро</h3></div>
+        <span class="tag">Linux LTS · свежие драйверы из backports</span>
+        <p data-i18n="a1_p">Ядро Linux LTS с бэкпортом свежих драйверов: новые ноутбуки работают сразу, стабильность — от LTS. Написать своё ядро — значит повторить ReactOS: десятилетия и вечная альфа. <b>Мы это знаем и не делаем.</b></p>
+      </div>
+      <div class="a-card">
+        <div class="a-top"><span class="a-ic" data-ic="atomic"></span><h3 data-i18n="a2_h">Атомарное основание</h3></div>
+        <span class="tag">A/B-образы · откат одним действием</span>
+        <p data-i18n="a2_p">Система — это подписанный образ, а не тысячи пакетов в свободном полёте. Обновление применяется целиком или не применяется вовсе; неудачное — откатывается перезагрузкой. <b>Сломать систему обновлением нельзя.</b> Воспроизводимые сборки: каждый бит проверяем.</p>
+      </div>
+      <div class="a-card">
+        <div class="a-top"><span class="a-ic" data-ic="shell"></span><h3 data-i18n="a3_h">Шелл KWM</h3></div>
+        <span class="tag">Wayland · кубическая дизайн-система</span>
+        <p data-i18n="a3_p">Оболочка KONEKT на проверенном Wayland-стеке: одна гарнитура, единые правила интерфейса, анимации с физикой, ноль случайных пикселей. Не «тема поверх» — <b>свой HIG, как у macOS,</b> и первые собственные приложения, которые ему следуют.</p>
+      </div>
+      <div class="a-card">
+        <div class="a-top"><span class="a-ic" data-ic="store"></span><h3 data-i18n="a4_h">Приложения в песочницах</h3></div>
+        <span class="tag">Flatpak · магазин на инфраструктуре в РФ</span>
+        <p data-i18n="a4_p">Приложения изолированы от системы и друг от друга, права видимы и управляемы. Полное зеркало каталога — на российской инфраструктуре: <b>магазин не исчезнет из-за чужого CDN.</b> Кураторская витрина — наша.</p>
+      </div>
+      <div class="a-card">
+        <div class="a-top"><span class="a-ic" data-ic="gost"></span><h3 data-i18n="a5_h">Русский слой</h3></div>
+        <span class="tag">ГОСТ TLS · КриптоПро · Госуслуги</span>
+        <p data-i18n="a5_p">Электронная подпись, ГОСТ-шифрование, плагин Госуслуг, банковские кабинеты, нативный клиент 1С — <b>настраивается мастером в один клик,</b> а не по инструкции на сорок шагов. Это то, что не делает из коробки ни Windows, ни одна из «реестровых» систем.</p>
+      </div>
+      <div class="a-card">
+        <div class="a-top"><span class="a-ic" data-ic="wine"></span><h3 data-i18n="a6_h">Windows-приложения</h3></div>
+        <span class="tag">Wine / Proton · проверено по-приложенчески</span>
+        <p data-i18n="a6_p">Слой совместимости Wine/Proton — встроен и настроен. Каждое приложение из белого списка тестируется и получает честную метку <b>KONEKT Verified</b> — как Valve делает для игр. Мы обещаем не «совместимость с Windows», а конкретные работающие программы.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="design">
+  <div class="wrap sec">
+    <div class="sec-head rv"><span class="sec-num">03</span><h2 data-i18n="des_h">Дизайн — это система</h2></div>
+    <p class="sec-sub rv" data-i18n="des_sub">Премиальность macOS — не в обоях, а в последовательности: один набор правил, которому подчиняется каждый диалог. У KONEKT эти правила уже есть — им следует вся семья продуктов, от соцсети до этого сайта.</p>
+    <div class="prin rv">
+      <div class="p-cell"><h3 data-i18n="p1_h">Кубично</h3><p data-i18n="p1_p">Ноль скруглений по умолчанию. Прямые углы, тонкие линии, ничего лишнего. Скругление — осознанный выбор пользователя, а не мода.</p></div>
+      <div class="p-cell"><h3 data-i18n="p2_h">Чёрное</h3><p data-i18n="p2_p">Истинный чёрный как основа. Свет — для акцентов и текста. Интерфейс не светит в лицо, он уступает место содержимому.</p></div>
+      <div class="p-cell"><h3 data-i18n="p3_h">Одна гарнитура</h3><p data-i18n="p3_p">Единый кириллический шрифт системного класса, одинаковый рендеринг в каждом окне. Никаких пяти конфигураций отрисовки в одной системе.</p></div>
+      <div class="p-cell"><h3 data-i18n="p4_h">Физика движения</h3><p data-i18n="p4_p">Анимации с пружинной кривой, прерываемые в любой момент, привязанные к жесту. Движение объясняет, откуда что взялось.</p></div>
+    </div>
+    <div class="p-demo rv">
+      <div class="type">KONEKT OS<span data-i18n="type_note">Montserrat · верхний регистр · разрядка</span></div>
+      <div class="sw" aria-hidden="true">
+        <i style="background:#ffffff"></i><i style="background:#1d9bf0"></i><i style="background:#00ba7c"></i><i style="background:#ffd400"></i><i style="background:#f91880"></i><i style="background:#f4212e"></i>
+      </div>
+      <div id="prinGlobe" style="color:#2c2c2c"></div>
+    </div>
+  </div>
+</section>
+
+<section id="compat">
+  <div class="wrap sec">
+    <div class="sec-head rv"><span class="sec-num">04</span><h2 data-i18n="c_h">Что будет работать</h2></div>
+    <p class="sec-sub rv" data-i18n="c_sub">Систему меняют не ради системы — ради своих программ. Поэтому список ниже и есть настоящая дорожная карта.</p>
+    <div class="chips rv">
+      <span class="chip"><i></i>Telegram</span>
+      <span class="chip"><i></i>Яндекс Браузер</span>
+      <span class="chip"><i></i>OnlyOffice</span>
+      <span class="chip"><i></i>МойОфис</span>
+      <span class="chip"><i></i>Р7-Офис</span>
+      <span class="chip"><i></i>1С:Предприятие</span>
+      <span class="chip"><i></i>MAX</span>
+      <span class="chip"><i></i>Kaspersky</span>
+      <span class="chip"><i></i>Steam · Proton</span>
+      <span class="chip"><i></i>CS2 · Dota 2</span>
+      <span class="chip web"><i></i>Сбер / Т-Банк / ВТБ (web)</span>
+      <span class="chip web"><i></i>Госуслуги</span>
+      <span class="chip web"><i></i>VK</span>
+      <span class="chip web"><i></i>RuStore (Android-слой)</span>
+      <span class="chip wine"><i></i>КонсультантПлюс</span>
+      <span class="chip wine"><i></i>СБИС · Контур</span>
+      <span class="chip wine"><i></i>Photoshop (по версиям)</span>
+    </div>
+    <div class="legend rv">
+      <span><i style="background:var(--repost)"></i><b data-i18n="lg1">нативно</b></span>
+      <span><i style="background:var(--accent)"></i><b data-i18n="lg2">веб / PWA</b></span>
+      <span><i style="background:var(--warn)"></i><b data-i18n="lg3">через Wine · KONEKT Verified</b></span>
+    </div>
+    <div class="note rv" data-i18n="c_note">Честность — часть продукта: игры с ядерным античитом (Valorant, Battlefield) на Linux не работают ни у кого, и мы не будем делать вид, что у нас заработают. Зато самые играемые в России CS2 и Dota 2 — нативные.</div>
+  </div>
+</section>
+
+<section id="road">
+  <div class="wrap sec">
+    <div class="sec-head rv"><span class="sec-num">05</span><h2 data-i18n="r_h">Дорожная карта</h2></div>
+    <div class="road rv">
+      <div class="r-row done">
+        <div class="r-left"><span class="st"><i></i><span data-i18n="r0_s">Готово</span></span></div>
+        <div class="r-main">
+          <h3 data-i18n="r0_h">Концепт-шелл — в браузере</h3>
+          <p data-i18n="r0_p">Язык интерфейса, оконная модель, терминал, файлы, настройки — всё уже можно потрогать наверху этой страницы. Один HTML-файл, ничего не покидает устройство.</p>
+        </div>
+      </div>
+      <div class="r-row now">
+        <div class="r-left"><span class="st"><i></i><span data-i18n="r1_s">Сейчас</span></span></div>
+        <div class="r-main">
+          <h3 data-i18n="r1_h">Фаза 1 — шелл KWM на реальном железе</h3>
+          <p data-i18n="r1_p">Оболочка KONEKT поверх проверенного Wayland-стека, дизайн-система в каждом пикселе, альфа-образы для энтузиастов. Основание — атомарное с первого дня.</p>
+        </div>
+      </div>
+      <div class="r-row">
+        <div class="r-left"><span class="st"><i></i><span data-i18n="r2_s">Дальше</span></span></div>
+        <div class="r-main">
+          <h3 data-i18n="r2_h">Фаза 2 — бета: Live-USB и магазин</h3>
+          <p data-i18n="r2_p">Загрузился с флешки — попробовал, ничего не ставя. Магазин приложений на российской инфраструктуре, мастер «русского слоя», первые метки KONEKT Verified.</p>
+        </div>
+      </div>
+      <div class="r-row">
+        <div class="r-left"><span class="st"><i></i><span data-i18n="r3_s">Цель</span></span></div>
+        <div class="r-main">
+          <h3 data-i18n="r3_h">1.0 — предустановки и Pro</h3>
+          <p data-i18n="r3_p">Каждый пятый ноутбук в рознице продаётся без ОС — это наш канал. Бесплатно для людей, разовый Pro для тех, кто хочет большего, консоль управления парком — для школ и организаций.</p>
+        </div>
+      </div>
+    </div>
+    <div class="note rv" style="margin-top:26px" data-i18n="r_note">Дат здесь нет намеренно: мы назовём сроки, когда им можно будет верить. Напишите нам — расскажем первыми.</div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap sec">
+    <div class="sec-head rv"><span class="sec-num">06</span><h2 data-i18n="f_h">Вопросы</h2></div>
+    <div class="faq rv" id="faqBox">
+      <div class="q"><button><span data-i18n="q1">Это ещё один «реестровый» клон для госзакупок?</span><span class="x">+</span></button>
+        <div class="a" data-i18n="a1">Нет. Мы не идём за сертификатами ФСТЭК и не продаём соответствие приказам — этот рынок занят и не рождает продукты, которые любят. KONEKT OS делается для людей, которые выбирают систему сами: дизайн, скорость, приватность. Если однажды её начнут закупать — хорошо, но мерило успеха другое: сколько людей поставили её добровольно.</div></div>
+      <div class="q"><button><span data-i18n="q2">Сколько это будет стоить?</span><span class="x">+</span></button>
+        <div class="a" data-i18n="a2">Для частных пользователей — бесплатно, без ограничений и телеметрии. Планируемая модель — разовая покупка Pro (дополнительные возможности и поддержка) и предустановки у партнёров. Продавать «бесплатный Linux за 4000 рублей», как уже пробовали другие, мы не будем.</div></div>
+      <div class="q"><button><span data-i18n="q3">Мои Windows-программы заработают?</span><span class="x">+</span></button>
+        <div class="a" data-i18n="a3">Многие — да, через встроенный слой Wine/Proton, и каждое проверенное приложение получает метку KONEKT Verified. 1С имеет нативный Linux-клиент, банки давно живут в вебе, офисные форматы открывает OnlyOffice. Чего мы не обещаем — бинарной совместимости на уровне ядра: этот путь съел у ReactOS тридцать лет.</div></div>
+      <div class="q"><button><span data-i18n="q4">А игры?</span><span class="x">+</span></button>
+        <div class="a" data-i18n="a4">Steam и Proton делают играбельным большинство каталога — Steam Deck это доказал массовому пользователю. CS2 и Dota 2 нативны. Не работают игры с ядерными античитами — честная метка будет стоять заранее, а не выясняться после установки.</div></div>
+      <div class="q"><button><span data-i18n="q5">Почему я должен верить, что внутри нет лишнего?</span><span class="x">+</span></button>
+        <div class="a" data-i18n="a5">Потому что верить и не нужно — нужно проверять. Основание собирается воспроизводимо: любой может пересобрать образ и сверить байты. Код открыт, телеметрии нет, все данные живут на устройстве. Это ответ сразу на оба вопроса — «а там нет слежки?» с любой из сторон.</div></div>
+      <div class="q"><button><span data-i18n="q6">Кто это делает?</span><span class="x">+</span></button>
+        <div class="a" data-i18n="a6">NKO Intl. Foundation of Technological Research &amp; Development — фонд за семьёй продуктов KONEKT: соцсеть, браузер, почта, облако. Фонд держит код и бренд; коммерческое крыло занимается Pro, предустановками и поддержкой. Схема выбрана сознательно: проект должен переживать людей.</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="f-grid">
+      <div>
+        <span class="lg" style="font-size:22px" id="markF"></span>
+        <div class="f-fam">
+          <span>KONEKT</span><span>KRYPTO</span><span>BROWSER</span><span>MAIL</span><span>KLOUD</span><span>KONTAINER</span><span>OS</span>
+        </div>
+      </div>
+      <div class="f-right">
+        <a href="demo.html" data-i18n="f_demo">Концепт-шелл</a><br>
+        <a href="https://konekt-tawny.vercel.app" target="_blank" rel="noopener">konekt.world</a><br>
+        <a href="mailto:os@konekt.world">os@konekt.world</a>
+      </div>
+    </div>
+    <div class="f-note">
+      <span data-i18n="f_n1">NKO Intl. Foundation of Technological Research &amp; Development · KONEKT HOLDING</span><br>
+      <span data-i18n="f_n2">Сделано в KONEKT.WORLD · Ничего из того, что вы делаете на этой странице, её не покидает.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ---------- wireframe globe (the mark) ---------- */
+function globe(px, weight){
+  const R = 50, w = weight || 7.4;
+  let lat = '';
+  [0, .43, -.43, .76, -.76].forEach(f => {
+    const y = R * f, hw = Math.sqrt(Math.max(R * R - y * y, 0)) - w * 0.18;
+    lat += '<line x1="' + (-hw).toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + hw.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>';
+  });
+  return '<svg viewBox="-56 -56 112 112" width="' + px + '" height="' + px + '" aria-hidden="true">' +
+    '<g fill="none" stroke="currentColor" stroke-width="' + w + '">' +
+      '<circle cx="0" cy="0" r="' + R + '"/>' +
+      '<ellipse cx="0" cy="0" rx="' + (R * .36).toFixed(1) + '" ry="' + R + '"/>' +
+      '<ellipse cx="0" cy="0" rx="' + (R * .73).toFixed(1) + '" ry="' + R + '"/>' +
+      '<line x1="0" y1="' + (-R) + '" x2="0" y2="' + R + '"/>' + lat +
+    '</g></svg>';
+}
+function wordmark(fs){
+  return '<span>K</span>' + globe(Math.round(fs * .78)) + '<span>NEKT&nbsp;OS</span>';
+}
+document.getElementById('mark').innerHTML = wordmark(19);
+document.getElementById('markF').innerHTML = wordmark(22);
+document.getElementById('heroGlobe').innerHTML = globe(560, 1.6);
+document.getElementById('prinGlobe').innerHTML = globe(52, 5);
+document.getElementById('demoPlayIc').innerHTML =
+  '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M7 4.5l12 7.5-12 7.5z"/></svg>';
+
+/* ---------- app-card icons ---------- */
+const AIC = {
+  kernel: '<circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8.4"/><path d="M12 3.6v3.2M12 17.2v3.2M3.6 12h3.2M17.2 12h3.2"/>',
+  atomic: '<rect x="4" y="4" width="16" height="7"/><rect x="4" y="13" width="16" height="7"/><path d="M8 7.5h4M8 16.5h4"/>',
+  shell:  '<rect x="3.5" y="4.5" width="17" height="14"/><path d="M3.5 8.5h17M7 12.5l2.4 2-2.4 2M11.5 16.5h4"/>',
+  store:  '<rect x="4.5" y="8" width="15" height="12"/><path d="M4.5 8l2-4h11l2 4M12 12v4"/>',
+  gost:   '<rect x="5.5" y="10.5" width="13" height="9.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14.5v2.5"/>',
+  wine:   '<path d="M7 4h10l-1.2 7a3.9 3.9 0 0 1-7.6 0z"/><path d="M12 15v5M8.5 20h7"/>'
+};
+document.querySelectorAll('.a-ic').forEach(el => {
+  el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">' + AIC[el.dataset.ic] + '</svg>';
+});
+
+/* ---------- i18n ---------- */
+const I18N = {
+  nav_why:   { ru:'Зачем', en:'Why' },
+  nav_arch:  { ru:'Архитектура', en:'Architecture' },
+  nav_design:{ ru:'Дизайн', en:'Design' },
+  nav_compat:{ ru:'Совместимость', en:'Compatibility' },
+  nav_road:  { ru:'Дорожная карта', en:'Roadmap' },
+  nav_faq:   { ru:'Вопросы', en:'FAQ' },
+  nav_demo:  { ru:'Демо', en:'Demo' },
+  badge:     { ru:'KONEKT OS 2.0 · в разработке · NKO', en:'KONEKT OS 2.0 · in development · NKO' },
+  h1:        { ru:'Настольная операционная система, которую выбирают, а&nbsp;не&nbsp;назначают.', en:'A desktop operating system people choose — not one they are assigned.' },
+  h1sub:     { ru:'Российская альтернатива Windows и macOS. Не форк ради сертификата и не тема поверх чужого рабочего стола — операционная система как продукт: ядро Linux LTS, атомарные обновления, собственный шелл и дизайн-система, ГОСТ и Госуслуги из коробки.', en:'A Russian alternative to Windows and macOS. Not a fork built for certificates, not a theme over someone else’s desktop — an operating system as a product: a Linux LTS kernel, atomic updates, an original shell and design system, GOST and Gosuslugi working out of the box.' },
+  cta_demo:  { ru:'Попробовать концепт в браузере', en:'Try the concept in your browser' },
+  cta_road:  { ru:'Дорожная карта', en:'Roadmap' },
+  cta_mail:  { ru:'Написать нам', en:'Write to us' },
+  demo_run:  { ru:'Запустить концепт-шелл · прямо здесь', en:'Boot the concept shell · right here' },
+  demo_note: { ru:'Концепт-шелл KonektOS 1.4 — один HTML-файл, всё хранится локально', en:'The KonektOS 1.4 concept shell — one HTML file, everything stays local' },
+  demo_full: { ru:'Открыть на весь экран →', en:'Open full screen →' },
+  why_h:     { ru:'Зачем ещё одна ОС', en:'Why another OS' },
+  why1_h:    { ru:'российских десктопов — Windows', en:'of Russian desktops run Windows' },
+  why1_p:    { ru:'Чаще всего — пиратская. Лицензии ушли, привычка осталась. Людям не предложили систему, ради которой стоит переучиваться: предложили только «импортозамещение».', en:'Mostly pirated. The licences left; the habit stayed. Nobody offered people a system worth relearning for — only “import substitution”.' },
+  why2_h:    { ru:'рынка отечественных ОС — сертификаты', en:'of the domestic OS market is certificates' },
+  why2_p:    { ru:'Три вендора делят почти весь рынок, и весь он — закупки по требованиям. Это системы, которые назначают приказом. Ни одну из них не ставят себе домой по любви.', en:'Three vendors split nearly all of it, and all of it is mandated procurement. These are systems assigned by decree. Nobody installs one at home out of love.' },
+  why3_h:    { ru:'дизайн-ориентированных ОС в стране', en:'design-led operating systems in the country' },
+  why3_p:    { ru:'Ни у одной российской системы нет собственного языка интерфейса: поверх чужих рабочих столов — обои и иконки. KONEKT OS начинается с дизайн-системы, а не заканчивается ею.', en:'No Russian system has an interface language of its own — wallpapers and icons over somebody else’s desktop. KONEKT OS starts with a design system instead of ending with one.' },
+  arch_h:    { ru:'Как она устроена', en:'How it is built' },
+  arch_sub:  { ru:'Мы не пишем ядро с нуля — это дорога, на которой проекты стареют, не родившись. Вся инженерная энергия уходит туда, где живёт ощущение macOS: в слой опыта. Основание — проверенное и скучное, намеренно.', en:'We are not writing a kernel from scratch — that is the road where projects grow old before they are born. The engineering energy goes where the macOS feeling actually lives: the experience layer. The foundation is proven and boring, on purpose.' },
+  a1_h:      { ru:'Ядро', en:'Kernel' },
+  a1_p:      { ru:'Ядро Linux LTS с бэкпортом свежих драйверов: новые ноутбуки работают сразу, стабильность — от LTS. Написать своё ядро — значит повторить ReactOS: десятилетия и вечная альфа. <b>Мы это знаем и не делаем.</b>', en:'A Linux LTS kernel with fresh drivers backported: new laptops work on day one, stability comes from LTS. Writing our own kernel would mean repeating ReactOS — decades of eternal alpha. <b>We know it, so we don’t.</b>' },
+  a2_h:      { ru:'Атомарное основание', en:'Atomic foundation' },
+  a2_p:      { ru:'Система — это подписанный образ, а не тысячи пакетов в свободном полёте. Обновление применяется целиком или не применяется вовсе; неудачное — откатывается перезагрузкой. <b>Сломать систему обновлением нельзя.</b> Воспроизводимые сборки: каждый бит проверяем.', en:'The system is a signed image, not thousands of free-floating packages. An update applies entirely or not at all; a bad one rolls back with a reboot. <b>You cannot brick the system by updating it.</b> Reproducible builds: every bit is verifiable.' },
+  a3_h:      { ru:'Шелл KWM', en:'The KWM shell' },
+  a3_p:      { ru:'Оболочка KONEKT на проверенном Wayland-стеке: одна гарнитура, единые правила интерфейса, анимации с физикой, ноль случайных пикселей. Не «тема поверх» — <b>свой HIG, как у macOS,</b> и первые собственные приложения, которые ему следуют.', en:'The KONEKT shell on a proven Wayland stack: one typeface, one set of interface rules, physics-driven animation, zero accidental pixels. Not a “theme on top” — <b>a real HIG, the way macOS has one,</b> and first-party apps that obey it.' },
+  a4_h:      { ru:'Приложения в песочницах', en:'Sandboxed apps' },
+  a4_p:      { ru:'Приложения изолированы от системы и друг от друга, права видимы и управляемы. Полное зеркало каталога — на российской инфраструктуре: <b>магазин не исчезнет из-за чужого CDN.</b> Кураторская витрина — наша.', en:'Apps are isolated from the system and from each other; permissions are visible and yours to control. A full catalogue mirror runs on Russian infrastructure: <b>the store cannot vanish with somebody else’s CDN.</b> The curated storefront is ours.' },
+  a5_h:      { ru:'Русский слой', en:'The Russian layer' },
+  a5_p:      { ru:'Электронная подпись, ГОСТ-шифрование, плагин Госуслуг, банковские кабинеты, нативный клиент 1С — <b>настраивается мастером в один клик,</b> а не по инструкции на сорок шагов. Это то, что не делает из коробки ни Windows, ни одна из «реестровых» систем.', en:'Digital signatures, GOST encryption, the Gosuslugi plugin, bank portals, the native 1C client — <b>set up by a one-click wizard,</b> not a forty-step manual. Something neither Windows nor any registry-listed system does out of the box.' },
+  a6_h:      { ru:'Windows-приложения', en:'Windows apps' },
+  a6_p:      { ru:'Слой совместимости Wine/Proton — встроен и настроен. Каждое приложение из белого списка тестируется и получает честную метку <b>KONEKT Verified</b> — как Valve делает для игр. Мы обещаем не «совместимость с Windows», а конкретные работающие программы.', en:'The Wine/Proton compatibility layer ships built-in and tuned. Every whitelisted app is tested and earns an honest <b>KONEKT Verified</b> badge — the way Valve does it for games. We promise specific working applications, not “Windows compatibility”.' },
+  des_h:     { ru:'Дизайн — это система', en:'Design is a system' },
+  des_sub:   { ru:'Премиальность macOS — не в обоях, а в последовательности: один набор правил, которому подчиняется каждый диалог. У KONEKT эти правила уже есть — им следует вся семья продуктов, от соцсети до этого сайта.', en:'What makes macOS feel premium is not wallpaper — it is consistency: one set of rules every dialog obeys. KONEKT already has those rules; the whole product family follows them, from the social network to this page.' },
+  p1_h:      { ru:'Кубично', en:'Cubic' },
+  p1_p:      { ru:'Ноль скруглений по умолчанию. Прямые углы, тонкие линии, ничего лишнего. Скругление — осознанный выбор пользователя, а не мода.', en:'Zero rounding by default. Right angles, hairlines, nothing extra. Soft corners are a deliberate user choice, not a fashion.' },
+  p2_h:      { ru:'Чёрное', en:'Black' },
+  p2_p:      { ru:'Истинный чёрный как основа. Свет — для акцентов и текста. Интерфейс не светит в лицо, он уступает место содержимому.', en:'True black as the ground. Light is for accents and text. The interface does not shine in your face; it yields to content.' },
+  p3_h:      { ru:'Одна гарнитура', en:'One typeface' },
+  p3_p:      { ru:'Единый кириллический шрифт системного класса, одинаковый рендеринг в каждом окне. Никаких пяти конфигураций отрисовки в одной системе.', en:'One system-grade Cyrillic-first typeface, rendered identically in every window. Not five font configs living in one OS.' },
+  p4_h:      { ru:'Физика движения', en:'Motion physics' },
+  p4_p:      { ru:'Анимации с пружинной кривой, прерываемые в любой момент, привязанные к жесту. Движение объясняет, откуда что взялось.', en:'Spring-curve animation, interruptible at any moment, tied to the gesture. Motion explains where things came from.' },
+  type_note: { ru:'Montserrat · верхний регистр · разрядка', en:'Montserrat · uppercase · tracking' },
+  c_h:       { ru:'Что будет работать', en:'What will work' },
+  c_sub:     { ru:'Систему меняют не ради системы — ради своих программ. Поэтому список ниже и есть настоящая дорожная карта.', en:'Nobody switches systems for the system — they switch for their apps. Which makes the list below the real roadmap.' },
+  lg1:       { ru:'нативно', en:'native' },
+  lg2:       { ru:'веб / PWA', en:'web / PWA' },
+  lg3:       { ru:'через Wine · KONEKT Verified', en:'via Wine · KONEKT Verified' },
+  c_note:    { ru:'Честность — часть продукта: игры с ядерным античитом (Valorant, Battlefield) на Linux не работают ни у кого, и мы не будем делать вид, что у нас заработают. Зато самые играемые в России CS2 и Dota 2 — нативные.', en:'Honesty is part of the product: kernel-anticheat games (Valorant, Battlefield) run on nobody’s Linux, and we will not pretend they will run on ours. Meanwhile Russia’s most-played titles — CS2 and Dota 2 — are native.' },
+  r_h:       { ru:'Дорожная карта', en:'Roadmap' },
+  r0_s:      { ru:'Готово', en:'Done' },
+  r0_h:      { ru:'Концепт-шелл — в браузере', en:'Concept shell — in the browser' },
+  r0_p:      { ru:'Язык интерфейса, оконная модель, терминал, файлы, настройки — всё уже можно потрогать наверху этой страницы. Один HTML-файл, ничего не покидает устройство.', en:'The interface language, the window model, a terminal, files, settings — all touchable at the top of this page. One HTML file; nothing leaves your device.' },
+  r1_s:      { ru:'Сейчас', en:'Now' },
+  r1_h:      { ru:'Фаза 1 — шелл KWM на реальном железе', en:'Phase 1 — the KWM shell on real hardware' },
+  r1_p:      { ru:'Оболочка KONEKT поверх проверенного Wayland-стека, дизайн-система в каждом пикселе, альфа-образы для энтузиастов. Основание — атомарное с первого дня.', en:'The KONEKT shell on a proven Wayland stack, the design system in every pixel, alpha images for enthusiasts. The foundation is atomic from day one.' },
+  r2_s:      { ru:'Дальше', en:'Next' },
+  r2_h:      { ru:'Фаза 2 — бета: Live-USB и магазин', en:'Phase 2 — beta: Live USB and the store' },
+  r2_p:      { ru:'Загрузился с флешки — попробовал, ничего не ставя. Магазин приложений на российской инфраструктуре, мастер «русского слоя», первые метки KONEKT Verified.', en:'Boot from a USB stick and try it without installing a thing. The app store on Russian infrastructure, the Russian-layer wizard, the first KONEKT Verified badges.' },
+  r3_s:      { ru:'Цель', en:'Goal' },
+  r3_h:      { ru:'1.0 — предустановки и Pro', en:'1.0 — preinstalls and Pro' },
+  r3_p:      { ru:'Каждый пятый ноутбук в рознице продаётся без ОС — это наш канал. Бесплатно для людей, разовый Pro для тех, кто хочет большего, консоль управления парком — для школ и организаций.', en:'One in five retail laptops ships with no OS at all — that is our channel. Free for people, a one-time Pro for those who want more, a fleet console for schools and organisations.' },
+  r_note:    { ru:'Дат здесь нет намеренно: мы назовём сроки, когда им можно будет верить. Напишите нам — расскажем первыми.', en:'There are no dates here on purpose: we will name them when they can be believed. Write to us — you will hear first.' },
+  f_h:       { ru:'Вопросы', en:'Questions' },
+  q1:        { ru:'Это ещё один «реестровый» клон для госзакупок?', en:'Is this another registry clone for state procurement?' },
+  a1:        { ru:'Нет. Мы не идём за сертификатами ФСТЭК и не продаём соответствие приказам — этот рынок занят и не рождает продукты, которые любят. KONEKT OS делается для людей, которые выбирают систему сами: дизайн, скорость, приватность. Если однажды её начнут закупать — хорошо, но мерило успеха другое: сколько людей поставили её добровольно.', en:'No. We are not chasing FSTEC certificates or selling decree compliance — that market is taken, and it does not produce products people love. KONEKT OS is for people who choose their own system: design, speed, privacy. If institutions buy it one day, fine — but the success metric is how many people installed it voluntarily.' },
+  q2:        { ru:'Сколько это будет стоить?', en:'What will it cost?' },
+  a2:        { ru:'Для частных пользователей — бесплатно, без ограничений и телеметрии. Планируемая модель — разовая покупка Pro (дополнительные возможности и поддержка) и предустановки у партнёров. Продавать «бесплатный Linux за 4000 рублей», как уже пробовали другие, мы не будем.', en:'Free for individuals — no limits, no telemetry. The planned model is a one-time Pro purchase (extras and support) plus partner preinstalls. Selling “free Linux for 4,000 rubles”, as others have tried, is not on the menu.' },
+  q3:        { ru:'Мои Windows-программы заработают?', en:'Will my Windows apps run?' },
+  a3:        { ru:'Многие — да, через встроенный слой Wine/Proton, и каждое проверенное приложение получает метку KONEKT Verified. 1С имеет нативный Linux-клиент, банки давно живут в вебе, офисные форматы открывает OnlyOffice. Чего мы не обещаем — бинарной совместимости на уровне ядра: этот путь съел у ReactOS тридцать лет.', en:'Many will — through the built-in Wine/Proton layer, with every tested app earning a KONEKT Verified badge. 1C has a native Linux client, banks moved to the web long ago, OnlyOffice opens the office formats. What we do not promise is kernel-level binary compatibility: that road consumed thirty years of ReactOS.' },
+  q4:        { ru:'А игры?', en:'What about games?' },
+  a4:        { ru:'Steam и Proton делают играбельным большинство каталога — Steam Deck это доказал массовому пользователю. CS2 и Dota 2 нативны. Не работают игры с ядерными античитами — честная метка будет стоять заранее, а не выясняться после установки.', en:'Steam and Proton make most of the catalogue playable — the Steam Deck proved it to a mass audience. CS2 and Dota 2 are native. Kernel-anticheat titles do not work — and the honest badge will say so up front, not after you install.' },
+  q5:        { ru:'Почему я должен верить, что внутри нет лишнего?', en:'Why should I trust what is inside?' },
+  a5:        { ru:'Потому что верить и не нужно — нужно проверять. Основание собирается воспроизводимо: любой может пересобрать образ и сверить байты. Код открыт, телеметрии нет, все данные живут на устройстве. Это ответ сразу на оба вопроса — «а там нет слежки?» с любой из сторон.', en:'You should not have to trust it — you should be able to verify it. The foundation builds reproducibly: anyone can rebuild the image and compare the bytes. The code is open, there is no telemetry, your data lives on the device. That answers the surveillance question from every direction at once.' },
+  q6:        { ru:'Кто это делает?', en:'Who is building this?' },
+  a6:        { ru:'NKO Intl. Foundation of Technological Research &amp; Development — фонд за семьёй продуктов KONEKT: соцсеть, браузер, почта, облако. Фонд держит код и бренд; коммерческое крыло занимается Pro, предустановками и поддержкой. Схема выбрана сознательно: проект должен переживать людей.', en:'The NKO Intl. Foundation of Technological Research &amp; Development — the foundation behind the KONEKT product family: the social network, the browser, mail, cloud. The foundation holds the code and the brand; a commercial arm handles Pro, preinstalls and support. The split is deliberate: the project must outlive its people.' },
+  f_demo:    { ru:'Концепт-шелл', en:'Concept shell' },
+  f_n1:      { ru:'NKO Intl. Foundation of Technological Research &amp; Development · KONEKT HOLDING', en:'NKO Intl. Foundation of Technological Research &amp; Development · KONEKT HOLDING' },
+  f_n2:      { ru:'Сделано в KONEKT.WORLD · Ничего из того, что вы делаете на этой странице, её не покидает.', en:'Made in KONEKT.WORLD · Nothing you do on this page ever leaves it.' }
+};
+let lang = (function(){ try{ return localStorage.getItem('kos.site.lang') || 'ru'; }catch(e){ return 'ru'; } })();
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const d = I18N[el.dataset.i18n];
+    if(d && d[lang] !== undefined) el.innerHTML = d[lang];
+  });
+  document.getElementById('lRu').classList.toggle('on', lang === 'ru');
+  document.getElementById('lEn').classList.toggle('on', lang === 'en');
+  document.title = lang === 'ru'
+    ? 'KONEKT OS — российская настольная операционная система'
+    : 'KONEKT OS — a Russian desktop operating system';
+}
+document.getElementById('lRu').onclick = () => { lang = 'ru'; try{ localStorage.setItem('kos.site.lang', lang); }catch(e){} applyLang(); };
+document.getElementById('lEn').onclick = () => { lang = 'en'; try{ localStorage.setItem('kos.site.lang', lang); }catch(e){} applyLang(); };
+applyLang();
+
+/* ---------- demo embed: lazy boot on click, scaled to fit ---------- */
+const demoFrameBox = document.getElementById('demoFrame');
+let demoIframe = null;
+function fitDemo(){
+  if(!demoIframe) return;
+  const s = demoFrameBox.clientWidth / 1280;
+  demoIframe.style.transform = 'scale(' + s + ')';
+  demoIframe.style.height = (demoFrameBox.clientHeight / s) + 'px';
+}
+document.getElementById('demoShield').addEventListener('click', () => {
+  if(demoIframe) return;
+  demoIframe = document.createElement('iframe');
+  demoIframe.title = 'KONEKT OS concept shell';
+  demoIframe.src = 'demo.html';
+  demoFrameBox.appendChild(demoIframe);
+  fitDemo();
+  document.getElementById('demoShield').remove();
+});
+addEventListener('resize', fitDemo);
+document.getElementById('ctaDemo').addEventListener('click', e => {
+  e.preventDefault();
+  document.getElementById('demoWrap').scrollIntoView({ behavior:'smooth', block:'center' });
+});
+
+/* ---------- FAQ accordion ---------- */
+document.querySelectorAll('#faqBox .q > button').forEach(b => {
+  b.addEventListener('click', () => b.parentElement.classList.toggle('open'));
+});
+
+/* ---------- scroll reveal ---------- */
+const io = ('IntersectionObserver' in window) ? new IntersectionObserver(es => {
+  es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { threshold: .12 }) : null;
+document.querySelectorAll('.rv').forEach(el => { if(io) io.observe(el); else el.classList.add('in'); });
+</script>
+</body>
+</html>

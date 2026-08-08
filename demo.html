@@ -1,0 +1,1914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>KONEKT OS</title>
+<meta name="description" content="KONEKT OS — the operating environment of the KONEKT.WORLD headset. NKO Intl. Foundation of Technological Research &amp; Development.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-56 -56 112 112"><rect x="-56" y="-56" width="112" height="112" fill="black"/><g fill="none" stroke="white" stroke-width="7.4"><circle r="50"/><ellipse rx="18" ry="50"/><ellipse rx="36.5" ry="50"/><line y1="-50" y2="50"/><line x1="-48.7" y1="0" x2="48.7" y2="0"/><line x1="-43.8" y1="21.5" x2="43.8" y2="21.5"/><line x1="-43.8" y1="-21.5" x2="43.8" y2="-21.5"/></g></svg>'>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>
+/* ============================= THEME =============================
+   Same tokens as KONEKT — black, cubic, hairlines. */
+:root{
+  --bg:#000000;
+  --hover:#0d0d0d;
+  --hover-2:#141414;
+  --line:#434343;      /* soft rule  — chrome, unfocused windows */
+  --line-2:#666666;    /* hard rule  — focused edges, fields     */
+  --line-3:#232323;    /* hairline   — inside panels             */
+  --text:#ffffff;
+  --text-2:#d8d8d8;
+  --btn-h:#d6d6d6;
+  --dim:#999999;
+  --dim-2:#6f6f6f;
+  --accent:#1d9bf0;
+  --like:#f91880;
+  --repost:#00ba7c;
+  --warn:#ffd400;
+  --danger:#f4212e;
+  --font:'Montserrat','Segoe UI',Arial,Helvetica,sans-serif;
+  --mono:'Cascadia Mono','Consolas',ui-monospace,'Menlo',monospace;
+  --strip:34px;        /* window titlebar */
+  --bar:44px;          /* taskbar */
+  --radius:0px;        /* cubic by default; Settings can soften it */
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff;
+  --hover:#f3f3f3;
+  --hover-2:#e8e8e8;
+  --line:#c4c4c4;
+  --line-2:#8c8c8c;
+  --line-3:#e2e2e2;
+  --text:#000000;
+  --text-2:#333333;
+  --btn-h:#2b2b2b;
+  --dim:#5c5c5c;
+  --dim-2:#8a8a8a;
+  color-scheme:light;
+}
+:root[data-motion="off"] *,
+:root[data-motion="off"] *::before,
+:root[data-motion="off"] *::after{
+  animation-duration:.001ms !important;animation-iteration-count:1 !important;
+  transition-duration:.001ms !important;scroll-behavior:auto !important;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--font);font-size:14px;font-weight:400;line-height:1.4;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:0;text-align:left;padding:0}
+input,textarea{font:inherit;color:inherit;background:none;border:0;outline:0;border-radius:0;padding:0}
+a{color:var(--accent);text-decoration:none}
+svg{display:block}
+::selection{background:var(--text);color:var(--bg)}
+.scroll::-webkit-scrollbar{width:6px;height:6px}
+.scroll::-webkit-scrollbar-thumb{background:#2e2e2e}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.scroll{scrollbar-width:thin;scrollbar-color:#2e2e2e transparent}
+:root[data-theme="light"] .scroll::-webkit-scrollbar-thumb{background:#c9c9c9}
+:root[data-theme="light"] .scroll{scrollbar-color:#c9c9c9 transparent}
+body.dragging,body.dragging *{user-select:none !important;cursor:inherit}
+
+/* ============================= PHASES ============================= */
+#boot,#lock,#shut,#os{display:none}
+body[data-phase="boot"] #boot{display:flex}
+body[data-phase="lock"] #lock{display:flex}
+body[data-phase="shut"] #shut{display:flex}
+body[data-phase="os"]   #os{display:flex}
+
+/* wordmark */
+.lg{display:inline-flex;align-items:center;gap:.14em;font-weight:800;letter-spacing:.02em;line-height:1;color:var(--text)}
+.lg .gl{flex:none}
+
+/* ============================= BOOT ============================= */
+#boot{
+  position:fixed;inset:0;background:#000;color:#fff;z-index:400;
+  flex-direction:column;align-items:center;justify-content:center;gap:26px;cursor:pointer;
+}
+#bootBar{width:220px;height:2px;background:#232323}
+#bootFill{width:0%;height:100%;background:#fff;transition:width .25s linear}
+#bootLog{
+  width:min(560px,84vw);height:170px;overflow:hidden;
+  font-family:var(--mono);font-size:11px;line-height:1.7;color:#6f6f6f;
+}
+#bootLog .ok{color:#999}
+#bootLog .tag{color:#00ba7c}
+#bootLog .tagw{color:#ffd400}
+#bootHint{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#434343}
+
+/* ============================= LOCK / LOGIN ============================= */
+#lock{
+  position:fixed;inset:0;background:var(--bg);z-index:300;
+  flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+#lkH{font-size:64px;font-weight:700;letter-spacing:.02em;line-height:1}
+#lkD{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:34px}
+.lock-tile{display:flex;flex-direction:column;align-items:center;gap:14px}
+.lock-av{
+  width:64px;height:64px;background:var(--text);color:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;border-radius:var(--radius);
+}
+.lock-name{font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.lock-in{
+  width:260px;border:1px solid var(--line-2);padding:10px 12px;
+  font-size:14px;text-align:center;letter-spacing:.03em;border-radius:var(--radius);
+}
+.lock-in::placeholder{color:var(--dim-2);text-transform:uppercase;font-size:11px;letter-spacing:.12em}
+.btn-solid{
+  background:var(--text);color:var(--bg);font-weight:700;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;padding:11px 26px;text-align:center;
+  border-radius:var(--radius);
+}
+.btn-solid:hover{background:var(--btn-h)}
+.lock-hint{margin-top:26px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim-2)}
+.lock-reset{margin-top:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim-2)}
+.lock-reset:hover{color:var(--danger)}
+#lockPower{position:fixed;right:22px;bottom:18px;display:flex;gap:6px}
+#lockPower button{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--dim)}
+#lockPower button:hover{color:var(--text);background:var(--hover-2)}
+
+/* ============================= SHUTDOWN ============================= */
+#shut{
+  position:fixed;inset:0;background:#000;z-index:500;cursor:pointer;
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;
+}
+#shut .s1{color:#6f6f6f;font-size:13px;letter-spacing:.06em}
+#shut .s2{color:#434343;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+
+/* ============================= DESKTOP ============================= */
+#os{position:fixed;inset:0;flex-direction:column}
+#desk{position:relative;flex:1;overflow:hidden;background-color:var(--bg);background-size:cover;background-position:center}
+#icons{
+  position:absolute;left:10px;top:10px;bottom:10px;
+  display:flex;flex-direction:column;flex-wrap:wrap;align-content:flex-start;gap:2px;
+}
+.dico{
+  width:86px;padding:9px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:7px;
+  border:1px solid transparent;cursor:default;border-radius:var(--radius);
+}
+.dico svg{width:30px;height:30px;color:var(--text)}
+.dico .t{
+  font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-align:center;
+  color:var(--text);text-shadow:0 1px 4px rgba(0,0,0,.9);
+  max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+:root[data-theme="light"] .dico .t{text-shadow:0 1px 4px rgba(255,255,255,.9)}
+.dico:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)}
+.dico.sel{background:rgba(255,255,255,.09);border-color:var(--line-2)}
+:root[data-theme="light"] .dico:hover{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.16)}
+:root[data-theme="light"] .dico.sel{background:rgba(0,0,0,.08);border-color:var(--line-2)}
+
+/* ============================= TASKBAR ============================= */
+#taskbar{
+  height:var(--bar);flex:none;display:flex;align-items:stretch;
+  background:var(--bg);border-top:1px solid var(--line);position:relative;z-index:200;
+}
+#stBtn{width:54px;display:flex;align-items:center;justify-content:center;color:var(--text)}
+#stBtn:hover,#stBtn.on{background:var(--hover-2)}
+#tasks{flex:1;display:flex;align-items:stretch;overflow:hidden}
+.task{
+  display:flex;align-items:center;gap:8px;padding:0 14px;max-width:190px;min-width:0;
+  color:var(--dim);border-right:1px solid var(--line-3);
+}
+.task svg{width:15px;height:15px;flex:none}
+.task .t{
+  font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.task:hover{background:var(--hover);color:var(--text-2)}
+.task.on{color:var(--text);box-shadow:inset 0 -2px 0 var(--text)}
+.task.minz{color:var(--dim-2)}
+#tray{display:flex;align-items:center;gap:16px;padding:0 16px;border-left:1px solid var(--line-3)}
+#trUp{display:flex;align-items:center;gap:7px}
+#trUp i{width:6px;height:6px;background:var(--repost);display:block}
+#trUp.off i{background:var(--danger)}
+#trUp span{font-size:9px;letter-spacing:.14em;color:var(--dim-2);text-transform:uppercase}
+#trClock{text-align:right;line-height:1.25}
+#trClock .h{font-size:12px;font-weight:600;letter-spacing:.04em}
+#trClock .d{font-size:9px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+
+/* ============================= START MENU ============================= */
+#smenu{
+  position:absolute;left:8px;bottom:calc(var(--bar) + 8px);width:300px;z-index:250;
+  background:var(--bg);border:1px solid var(--line-2);display:none;flex-direction:column;
+  box-shadow:0 18px 50px rgba(0,0,0,.55);border-radius:var(--radius);
+}
+#smenu.on{display:flex}
+.sm-head{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--line-3)}
+.sm-av{
+  width:38px;height:38px;background:var(--text);color:var(--bg);flex:none;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;
+  border-radius:var(--radius);
+}
+.sm-n{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.sm-d{font-size:10px;color:var(--dim);letter-spacing:.06em}
+.sm-list{padding:6px 0}
+.sm-i{
+  width:100%;display:flex;align-items:center;gap:12px;padding:10px 16px;color:var(--text);
+}
+.sm-i svg{width:17px;height:17px;color:var(--dim)}
+.sm-i span{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.sm-i:hover{background:var(--hover)}
+.sm-i:hover svg{color:var(--text)}
+.sm-foot{display:flex;border-top:1px solid var(--line-3)}
+.sm-p{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 0;color:var(--dim);
+}
+.sm-p svg{width:16px;height:16px}
+.sm-p span{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase}
+.sm-p:hover{background:var(--hover);color:var(--text)}
+
+/* ============================= CONTEXT MENU ============================= */
+#cmenu{
+  position:fixed;z-index:260;background:var(--bg);border:1px solid var(--line-2);
+  min-width:190px;display:none;flex-direction:column;padding:4px 0;
+  box-shadow:0 14px 40px rgba(0,0,0,.5);border-radius:var(--radius);
+}
+#cmenu.on{display:flex}
+#cmenu button{
+  padding:9px 16px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  display:flex;align-items:center;gap:10px;
+}
+#cmenu button svg{width:14px;height:14px;color:var(--dim)}
+#cmenu button:hover{background:var(--hover)}
+#cmenu button:hover svg{color:var(--text)}
+#cmenu .sep{height:1px;background:var(--line-3);margin:4px 0}
+
+/* ============================= WINDOWS ============================= */
+#winlayer{position:absolute;inset:0;pointer-events:none}
+.win{
+  position:absolute;display:flex;flex-direction:column;pointer-events:auto;
+  background:var(--bg);border:1px solid var(--line);
+  box-shadow:0 18px 50px rgba(0,0,0,.55);border-radius:var(--radius);overflow:hidden;
+  min-width:200px;min-height:120px;
+}
+.win.focus{border-color:var(--line-2)}
+.win.minz{display:none}
+.win.maxed{box-shadow:none}
+.win-tb{
+  height:var(--strip);flex:none;display:flex;align-items:center;
+  border-bottom:1px solid var(--line-3);touch-action:none;
+}
+.win-ic{width:34px;display:flex;align-items:center;justify-content:center;color:var(--dim);flex:none}
+.win-ic svg{width:15px;height:15px}
+.win-t{
+  flex:1;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.win.focus .win-t{color:var(--text)}
+.win.focus .win-ic{color:var(--text)}
+.wb{
+  width:38px;height:var(--strip);display:flex;align-items:center;justify-content:center;
+  color:var(--dim);flex:none;
+}
+.wb:hover{background:var(--hover-2);color:var(--text)}
+.wb.cls:hover{background:var(--danger);color:#fff}
+.wb svg{width:11px;height:11px}
+.win-body{flex:1;min-height:0;display:flex;position:relative}
+.win.dragged iframe{pointer-events:none}
+/* resize handles */
+.rs{position:absolute;z-index:5}
+.rs.n{top:-3px;left:8px;right:8px;height:6px;cursor:n-resize}
+.rs.s{bottom:-3px;left:8px;right:8px;height:6px;cursor:s-resize}
+.rs.e{right:-3px;top:8px;bottom:8px;width:6px;cursor:e-resize}
+.rs.w{left:-3px;top:8px;bottom:8px;width:6px;cursor:w-resize}
+.rs.ne{top:-3px;right:-3px;width:11px;height:11px;cursor:ne-resize}
+.rs.nw{top:-3px;left:-3px;width:11px;height:11px;cursor:nw-resize}
+.rs.se{bottom:-3px;right:-3px;width:11px;height:11px;cursor:se-resize}
+.rs.sw{bottom:-3px;left:-3px;width:11px;height:11px;cursor:sw-resize}
+.win.maxed .rs{display:none}
+#snapghost{
+  position:absolute;z-index:150;pointer-events:none;display:none;
+  border:1px solid var(--text);background:rgba(255,255,255,.06);
+  transition:left .08s,top .08s,width .08s,height .08s;
+}
+:root[data-theme="light"] #snapghost{background:rgba(0,0,0,.06)}
+
+/* ============================= APP: TERMINAL ============================= */
+.term{
+  flex:1;display:flex;flex-direction:column;font-family:var(--mono);font-size:12.5px;
+  line-height:1.55;padding:10px 12px;overflow-y:auto;cursor:text;
+}
+.term .tl{white-space:pre-wrap;word-break:break-word;color:var(--text-2)}
+.term .tl.dim{color:var(--dim)}
+.term .tl.err{color:var(--danger)}
+.term .tl .acc{color:var(--accent)}
+.term .tl .grn{color:var(--repost)}
+.term-row{display:flex;align-items:baseline}
+.term-ps{color:var(--repost);white-space:pre;flex:none}
+.term-in{flex:1;font-family:var(--mono);font-size:12.5px;caret-color:var(--text);min-width:40px}
+
+/* ============================= APP: FILES ============================= */
+.fx{flex:1;display:flex;flex-direction:column;min-width:0}
+.fx-bar{
+  height:38px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;
+  border-bottom:1px solid var(--line-3);
+}
+.fx-b{
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--dim);
+}
+.fx-b:hover{background:var(--hover-2);color:var(--text)}
+.fx-b:disabled{color:var(--line);cursor:default;background:none}
+.fx-b svg{width:14px;height:14px}
+.fx-path{
+  flex:1;display:flex;align-items:center;gap:2px;min-width:0;overflow:hidden;
+  padding:0 8px;font-size:11px;letter-spacing:.04em;
+}
+.fx-crumb{color:var(--dim);padding:4px 5px;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.08em;white-space:nowrap}
+.fx-crumb:hover{color:var(--text);background:var(--hover-2)}
+.fx-crumb.cur{color:var(--text)}
+.fx-sl{color:var(--dim-2);font-size:10px}
+.fx-grid{
+  flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));
+  gap:2px;padding:10px;align-content:start;
+}
+.fi{
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 6px 9px;
+  border:1px solid transparent;cursor:default;border-radius:var(--radius);
+}
+.fi svg{width:28px;height:28px;color:var(--dim)}
+.fi.dir svg{color:var(--text)}
+.fi .t{
+  font-size:10.5px;text-align:center;max-width:100%;overflow-wrap:anywhere;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.fi:hover{background:var(--hover);border-color:var(--line-3)}
+.fi.sel{background:var(--hover-2);border-color:var(--line-2)}
+.fi .ren{width:100%;border:1px solid var(--line-2);background:var(--bg);font-size:10.5px;text-align:center;padding:2px 3px}
+.fx-status{
+  height:26px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;
+  border-top:1px solid var(--line-3);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim-2);
+}
+
+/* ============================= APP: NOTES ============================= */
+.nx{flex:1;display:flex;min-width:0}
+.nx-side{width:190px;flex:none;border-right:1px solid var(--line-3);display:flex;flex-direction:column}
+.nx-head{
+  height:38px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:0 8px 0 14px;border-bottom:1px solid var(--line-3);
+  font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+}
+.nx-new{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--dim)}
+.nx-new:hover{background:var(--hover-2);color:var(--text)}
+.nx-new svg{width:13px;height:13px}
+.nx-list{flex:1;overflow-y:auto;padding:4px 0}
+.nx-it{width:100%;padding:9px 14px;display:block}
+.nx-it .n{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-it .p{font-size:9.5px;color:var(--dim-2);letter-spacing:.04em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-it:hover{background:var(--hover)}
+.nx-it.on{background:var(--hover-2);box-shadow:inset 2px 0 0 var(--text)}
+.nx-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.nx-ta{flex:1;resize:none;padding:16px;font-size:13.5px;line-height:1.6;font-family:var(--mono)}
+.nx-status{
+  height:26px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;
+  border-top:1px solid var(--line-3);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim-2);
+}
+.nx-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--dim-2);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+
+/* ============================= APP: KALC ============================= */
+.kc{flex:1;display:flex;flex-direction:column}
+.kc-out{
+  flex:none;padding:22px 16px 10px;text-align:right;
+  font-size:15px;color:var(--dim);min-height:24px;letter-spacing:.03em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);
+}
+.kc-cur{
+  flex:none;padding:0 16px 18px;text-align:right;font-size:30px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);
+}
+.kc-grid{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-3);border-top:1px solid var(--line-3)}
+.kc-b{background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500}
+.kc-b:hover{background:var(--hover-2)}
+.kc-b.op{color:var(--dim)}
+.kc-b.op:hover{color:var(--text)}
+.kc-b.eq{background:var(--text);color:var(--bg);font-weight:700}
+.kc-b.eq:hover{background:var(--btn-h)}
+
+/* ============================= APP: SETTINGS ============================= */
+.st{flex:1;display:flex;min-width:0}
+.st-nav{width:172px;flex:none;border-right:1px solid var(--line-3);padding:8px 0;overflow-y:auto}
+.st-ni{
+  width:100%;padding:11px 18px;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);display:block;
+}
+.st-ni:hover{background:var(--hover);color:var(--text-2)}
+.st-ni.on{color:var(--text);box-shadow:inset 2px 0 0 var(--text)}
+.st-main{flex:1;overflow-y:auto;padding:22px 26px;min-width:0}
+.st-sec{margin-bottom:30px}
+.st-t{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden}
+.seg button{
+  padding:8px 16px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+}
+.seg button + button{border-left:1px solid var(--line-2)}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--text);color:var(--bg)}
+.swatches{display:flex;gap:8px}
+.swatch{width:24px;height:24px;border:1px solid var(--line);cursor:pointer;border-radius:var(--radius)}
+.swatch:hover{border-color:var(--dim)}
+.swatch.on{outline:2px solid var(--text);outline-offset:2px}
+.walls{display:flex;flex-wrap:wrap;gap:10px}
+.wall{
+  width:128px;height:72px;border:1px solid var(--line);background-size:cover;background-position:center;
+  cursor:pointer;position:relative;border-radius:var(--radius);
+}
+.wall:hover{border-color:var(--dim)}
+.wall.on{border-color:var(--text);outline:1px solid var(--text)}
+.wall span{
+  position:absolute;left:6px;bottom:4px;font-size:8.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);
+}
+.st-field{display:flex;gap:8px;align-items:center}
+.st-in{border:1px solid var(--line-2);padding:9px 12px;font-size:13px;width:220px;border-radius:var(--radius)}
+.btn-line{
+  border:1px solid var(--line-2);padding:9px 18px;font-size:10px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;border-radius:var(--radius);
+}
+.btn-line:hover{background:var(--hover-2)}
+.btn-line.danger{color:var(--danger);border-color:var(--danger)}
+.btn-line.danger:hover{background:var(--danger);color:#fff}
+.about-row{display:flex;justify-content:space-between;gap:20px;padding:9px 0;border-bottom:1px solid var(--line-3);font-size:12.5px}
+.about-row .k{color:var(--dim);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding-top:2px}
+.about-row .v{text-align:right;overflow-wrap:anywhere}
+.st-note{font-size:11px;color:var(--dim);line-height:1.6;margin-top:10px}
+
+/* ============================= APP: KONEKT ============================= */
+.kn{flex:1;display:flex;position:relative;background:#000}
+.kn iframe{flex:1;border:0;width:100%;height:100%}
+.kn-ov{
+  position:absolute;inset:0;background:#000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;z-index:2;
+}
+.kn-ov.off{display:none}
+.kn-ov .pulse{animation:knp 1.6s ease-in-out infinite}
+@keyframes knp{0%,100%{opacity:1}50%{opacity:.35}}
+.kn-ov .s{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#6f6f6f}
+.kn-ov a{font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+
+/* ============================= MOBILE ============================= */
+@media (max-width:720px){
+  .win{left:0 !important;top:0 !important;width:100% !important;height:100% !important;border:0}
+  .rs{display:none !important}
+  .wb.max{display:none}
+  #icons{flex-direction:row;right:10px;bottom:auto;flex-wrap:wrap}
+  .nx-side{width:140px}
+  #smenu{width:calc(100vw - 16px)}
+}
+</style>
+</head>
+<body data-phase="boot">
+
+<div id="boot" aria-label="KONEKT OS is starting">
+  <div id="bootMark"></div>
+  <div id="bootBar"><div id="bootFill"></div></div>
+  <div id="bootLog"></div>
+  <div id="bootHint">click to skip</div>
+</div>
+
+<div id="lock"></div>
+
+<div id="shut">
+  <div id="shutMark"></div>
+  <div class="s1">It is now safe to take off your headset.</div>
+  <div class="s2">click anywhere to power on</div>
+</div>
+
+<div id="os">
+  <div id="desk">
+    <div id="icons"></div>
+    <div id="winlayer"></div>
+    <div id="snapghost"></div>
+  </div>
+  <div id="taskbar">
+    <button id="stBtn" aria-label="Start"></button>
+    <div id="tasks"></div>
+    <div id="tray">
+      <div id="trUp"><i></i><span>uplink</span></div>
+      <button id="trClock" aria-label="Clock"><div class="h"></div><div class="d"></div></button>
+    </div>
+  </div>
+  <div id="smenu"></div>
+</div>
+
+<div id="cmenu"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   KONEKT OS 1.4 — the operating environment of the KONEKT.WORLD headset.
+   NKO Intl. Foundation of Technological Research & Development.
+   One file, no build step, nothing leaves the device.
+   ===================================================================== */
+
+/* ---------------------------- helpers ---------------------------- */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function el(html){
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+function rng(seed){
+  let s = seed % 2147483647; if(s <= 0) s += 2147483646;
+  return () => (s = s * 48271 % 2147483647) / 2147483647;
+}
+function two(n){ return String(n).padStart(2, '0'); }
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+
+/* ---------------------------- iconography ----------------------------
+   The wireframe globe is the mark; app glyphs follow KONEKT's thin-stroke style. */
+function globe(px, weight){
+  const R = 50, w = weight || 7.4;
+  let lat = '';
+  [0, .43, -.43, .76, -.76].forEach(f => {
+    const y = R * f, hw = Math.sqrt(Math.max(R * R - y * y, 0)) - w * 0.18;
+    lat += '<line x1="' + (-hw).toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + hw.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>';
+  });
+  return '<svg class="gl" viewBox="-56 -56 112 112" width="' + px + '" height="' + px + '" aria-hidden="true">' +
+    '<g fill="none" stroke="currentColor" stroke-width="' + w + '">' +
+      '<circle cx="0" cy="0" r="' + R + '"/>' +
+      '<ellipse cx="0" cy="0" rx="' + (R * .36).toFixed(1) + '" ry="' + R + '"/>' +
+      '<ellipse cx="0" cy="0" rx="' + (R * .73).toFixed(1) + '" ry="' + R + '"/>' +
+      '<line x1="0" y1="' + (-R) + '" x2="0" y2="' + R + '"/>' + lat +
+    '</g></svg>';
+}
+function logoLong(fs){
+  fs = fs || 26;
+  return '<span class="lg" style="font-size:' + fs + 'px" aria-label="KONEKT OS">' +
+    '<span>K</span>' + globe(Math.round(fs * .78)) + '<span>NEKT&nbsp;OS</span></span>';
+}
+function ic(inner, vb){
+  return '<svg viewBox="0 0 ' + (vb || 24) + ' ' + (vb || 24) + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" aria-hidden="true">' + inner + '</svg>';
+}
+const IC = {
+  globe:   globe(24, 2.2).replace('class="gl"', ''),
+  files:   ic('<path d="M3 6.5h6.2l2 2.3H21v10.7H3z"/>'),
+  term:    ic('<rect x="3" y="4.5" width="18" height="15"/><path d="M7 9.5l3.2 2.5L7 14.5"/><path d="M12.5 15h5"/>'),
+  notes:   ic('<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14.5 3.5V8H19"/><path d="M9 12h6.5M9 15.5h6.5"/>'),
+  calc:    ic('<rect x="4.5" y="3" width="15" height="18"/><path d="M4.5 8.5h15"/><path d="M9.5 8.5v12.5M14.5 8.5v12.5"/><path d="M4.5 14.5h15"/>'),
+  set:     ic('<path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9" cy="7.5" r="1.9" fill="var(--bg)"/><circle cx="15" cy="12" r="1.9" fill="var(--bg)"/><circle cx="7" cy="16.5" r="1.9" fill="var(--bg)"/>'),
+  file:    ic('<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14.5 3.5V8H19"/>'),
+  power:   ic('<path d="M12 3.5v8"/><path d="M7.2 6.4a7.5 7.5 0 1 0 9.6 0"/>'),
+  restart: ic('<path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19 3.5V8h-4.5"/>'),
+  lock:    ic('<rect x="5.5" y="10.5" width="13" height="9.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>'),
+  plus:    ic('<path d="M12 5v14M5 12h14"/>'),
+  trash:   ic('<path d="M4.5 6.5h15"/><path d="M8 6.5V4h8v2.5"/><path d="M6.5 6.5l1 14h9l1-14"/>'),
+  pencil:  ic('<path d="M4 20l1-4L16.5 4.5l3 3L8 19z"/>'),
+  back:    ic('<path d="M15 4.5L7.5 12l7.5 7.5"/>'),
+  up:      ic('<path d="M12 19V5.5M5.5 11.5L12 5l6.5 6.5"/>'),
+  min:     '<svg viewBox="0 0 11 11" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1 5.5h9"/></svg>',
+  max:     '<svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.2" y="1.2" width="8.6" height="8.6"/></svg>',
+  restore: '<svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.2" y="3.2" width="6.6" height="6.6"/><path d="M3.4 3.2V1.2h6.4v6.4h-2"/></svg>',
+  cls:     '<svg viewBox="0 0 11 11" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1.5 1.5l8 8M9.5 1.5l-8 8"/></svg>'
+};
+
+/* ---------------------------- settings ---------------------------- */
+const DEFAULTS = { theme:'dark', accent:'#1d9bf0', wall:'void', motion:'on', corners:'cubic' };
+let settings = Object.assign({}, DEFAULTS, store.get('kos.settings', {}));
+function saveSettings(){ store.set('kos.settings', settings); }
+
+const ACCENTS = ['#1d9bf0', '#f91880', '#00ba7c', '#ffd400', '#ff6b1a', '#a78bfa'];
+
+function svgURI(w, h, inner){
+  return 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid slice">' + inner + '</svg>');
+}
+/* Wallpapers are generated, never fetched. 960x540 like the NKO reference canvas. */
+const WALLS = {
+  void(){
+    const R = 320; let g = '';
+    [0, .43, -.43, .76, -.76].forEach(f => {
+      const y = R * f, hw = Math.sqrt(Math.max(R * R - y * y, 0));
+      g += '<line x1="' + (-hw).toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + hw.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>';
+    });
+    return svgURI(960, 540,
+      '<rect width="960" height="540" fill="#000"/>' +
+      '<g transform="translate(760,470)" fill="none" stroke="#151515" stroke-width="2">' +
+        '<circle r="' + R + '"/><ellipse rx="' + R * .36 + '" ry="' + R + '"/><ellipse rx="' + R * .73 + '" ry="' + R + '"/>' +
+        '<line y1="-' + R + '" y2="' + R + '"/>' + g +
+      '</g>');
+  },
+  nebula(){
+    const r = rng(7); let st = '';
+    for(let i = 0; i < 170; i++)
+      st += '<circle cx="' + (r() * 960).toFixed(1) + '" cy="' + (r() * 540).toFixed(1) + '" r="' + (r() * 1.8 + .3).toFixed(1) + '" fill="#fff" opacity="' + (r() * .75 + .12).toFixed(2) + '"/>';
+    return svgURI(960, 540,
+      '<defs>' +
+      '<radialGradient id="a" cx="32%" cy="36%" r="72%"><stop offset="0" stop-color="#6d28d9"/><stop offset="52%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#04050c"/></radialGradient>' +
+      '<radialGradient id="b" cx="74%" cy="72%" r="48%"><stop offset="0" stop-color="#f91880" stop-opacity=".65"/><stop offset="100%" stop-color="#f91880" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="c" cx="58%" cy="24%" r="36%"><stop offset="0" stop-color="#22d3ee" stop-opacity=".55"/><stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/></radialGradient>' +
+      '</defs><rect width="960" height="540" fill="url(#a)"/><rect width="960" height="540" fill="url(#b)"/><rect width="960" height="540" fill="url(#c)"/>' + st);
+  },
+  grid(){
+    const hy = 300, cx = 480; let g = '';
+    for(let i = -14; i <= 14; i++)
+      g += '<line x1="' + cx + '" y1="' + hy + '" x2="' + (cx + i * 190) + '" y2="541" stroke="#1c1c1c" stroke-width="1.4"/>';
+    for(let i = 1; i <= 11; i++){
+      const y = hy + Math.pow(i / 11, 1.9) * 240;
+      g += '<line x1="0" y1="' + y.toFixed(1) + '" x2="960" y2="' + y.toFixed(1) + '" stroke="#1c1c1c" stroke-width="1.4"/>';
+    }
+    const r = rng(23); let st = '';
+    for(let i = 0; i < 70; i++)
+      st += '<circle cx="' + (r() * 960).toFixed(1) + '" cy="' + (r() * hy * .9).toFixed(1) + '" r="' + (r() * 1.3 + .3).toFixed(1) + '" fill="#fff" opacity="' + (r() * .5 + .1).toFixed(2) + '"/>';
+    return svgURI(960, 540,
+      '<rect width="960" height="540" fill="#000"/>' + st + g +
+      '<line x1="0" y1="' + hy + '" x2="960" y2="' + hy + '" stroke="' + settings.accent + '" stroke-width="1.6"/>');
+  },
+  orbit(){
+    let g = '';
+    for(let i = 1; i <= 6; i++)
+      g += '<ellipse cx="480" cy="270" rx="' + i * 150 + '" ry="' + i * 54 + '" fill="none" stroke="#191919" stroke-width="1.6" transform="rotate(-16 480 270)"/>';
+    const r = rng(11); let d = '';
+    for(let i = 1; i <= 6; i++){
+      const a = r() * Math.PI * 2, rx = i * 150, ry = i * 54;
+      const x = 480 + Math.cos(a) * rx, y = 270 + Math.sin(a) * ry;
+      d += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3" fill="' + (i === 3 ? settings.accent : '#4a4a4a') + '" transform="rotate(-16 480 270)"/>';
+    }
+    return svgURI(960, 540,
+      '<rect width="960" height="540" fill="#000"/>' + g + d +
+      '<circle cx="480" cy="270" r="26" fill="none" stroke="#3a3a3a" stroke-width="2"/>' +
+      '<circle cx="480" cy="270" r="5" fill="#fff"/>');
+  }
+};
+const WALL_NAMES = { void:'VOID', nebula:'NEBULA', grid:'HORIZON', orbit:'ORBIT' };
+
+function applySettings(){
+  const root = document.documentElement;
+  root.dataset.theme = settings.theme === 'light' ? 'light' : 'dark';
+  root.dataset.motion = settings.motion === 'off' ? 'off' : 'on';
+  root.style.setProperty('--accent', settings.accent);
+  root.style.setProperty('--radius', settings.corners === 'soft' ? '10px' : '0px');
+  const desk = $('#desk');
+  if(desk) desk.style.backgroundImage = 'url("' + (WALLS[settings.wall] || WALLS.void)() + '")';
+}
+
+/* ---------------------------- virtual filesystem ----------------------------
+   A tree in localStorage. dir: {type,children,mtime}  file: {type,content,mtime}.
+   The home stays /home/user whatever the display name is. */
+let FS = null;
+const HOME = ['home', 'user'];
+function fsNow(){ return Date.now(); }
+function fdir(children){ return { type:'dir', children: children || {}, mtime: fsNow() }; }
+function ffile(content){ return { type:'file', content: content || '', mtime: fsNow() }; }
+
+const README_TXT = [
+'KONEKT OS 1.4',
+'=============',
+'',
+'Welcome to your KONEKT.WORLD headset.',
+'',
+'This device runs KonektOS, the operating environment of the',
+'NKO Intl. Foundation of Technological Research & Development.',
+'',
+'Where to start',
+'  KONEKT     the network: posts, messages, market, music',
+'  FILES      everything on this headset, stored locally',
+'  TERMINAL   type "help". Then type "neofetch".',
+'  SETTINGS   wallpaper, accent, light theme, corners',
+'',
+'Everything you see lives on the device. The only network the',
+'OS touches is the KONEKT app itself, and only when you open it.',
+'',
+'— NKO firmware team'
+].join('\n');
+
+const IDEAS_TXT = [
+'ideas for konekt 5.0',
+'--------------------',
+'- flashbacks on the lock screen, full bleed',
+'- market listings you can stand in your room (AR drop)',
+'- lastochka should read the room before it speaks',
+'- a second headset must not silently destroy your encryption',
+'- koin balance in the tray? too loud. keep the tray quiet.'
+].join('\n');
+
+function seedFS(){
+  return fdir({
+    home: fdir({
+      user: fdir({
+        Desktop: fdir({
+          'README.txt': ffile(README_TXT)
+        }),
+        Documents: fdir({
+          'ideas.txt': ffile(IDEAS_TXT),
+          'shopping.txt': ffile('- coffee\n- 3 m of ribbon cable\n- a better chair\n- batteries (AAA, the headset remote)')
+        }),
+        Pictures: fdir(),
+        Music: fdir()
+      })
+    }),
+    sys: fdir({
+      'version': ffile('KonektOS 1.4.2 (build 2618)\nKONEKT.WORLD headset rev C\nswallow kernel 6.1.0-nko'),
+      'lastochka': ffile('LASTOCHKA neural core: uplink not provisioned on this build.\nThe full assistant lives in the KONEKT app.')
+    })
+  });
+}
+function fsSave(){ store.set('kos.fs', FS); }
+function fsLoad(){
+  FS = store.get('kos.fs', null);
+  if(!FS || FS.type !== 'dir'){ FS = seedFS(); fsSave(); }
+}
+/* path helpers: parts are arrays; [] is the root */
+function fsResolve(path, cwd){
+  let parts = path.startsWith('/') ? [] : (cwd || []).slice();
+  if(path.startsWith('~')) { parts = HOME.slice(); path = path.slice(1); }
+  for(const seg of path.split('/')){
+    if(!seg || seg === '.') continue;
+    if(seg === '..') parts.pop();
+    else parts.push(seg);
+  }
+  return parts;
+}
+function fsGet(parts){
+  let node = FS;
+  for(const p of parts){
+    if(!node || node.type !== 'dir' || !node.children[p]) return null;
+    node = node.children[p];
+  }
+  return node;
+}
+function fsPathStr(parts){ return '/' + parts.join('/'); }
+function fsTilde(parts){
+  const s = fsPathStr(parts);
+  const h = fsPathStr(HOME);
+  return s === h ? '~' : s.startsWith(h + '/') ? '~' + s.slice(h.length) : s;
+}
+function fsMk(parts, node){
+  if(!parts.length) return 'cannot create /';
+  const parent = fsGet(parts.slice(0, -1));
+  if(!parent || parent.type !== 'dir') return 'no such directory: ' + fsPathStr(parts.slice(0, -1));
+  const name = parts[parts.length - 1];
+  if(parent.children[name]) return 'already exists: ' + name;
+  parent.children[name] = node;
+  parent.mtime = fsNow();
+  fsSave();
+  return null;
+}
+function fsWrite(parts, content, append){
+  const parent = fsGet(parts.slice(0, -1));
+  if(!parent || parent.type !== 'dir') return 'no such directory';
+  const name = parts[parts.length - 1];
+  const cur = parent.children[name];
+  if(cur && cur.type === 'dir') return 'is a directory: ' + name;
+  if(cur){ cur.content = append ? cur.content + content : content; cur.mtime = fsNow(); }
+  else parent.children[name] = ffile(content);
+  fsSave();
+  return null;
+}
+function fsRm(parts, recursive){
+  if(!parts.length) return 'refusing to remove /';
+  const parent = fsGet(parts.slice(0, -1));
+  const name = parts[parts.length - 1];
+  if(!parent || !parent.children[name]) return 'no such file: ' + name;
+  const node = parent.children[name];
+  if(node.type === 'dir' && Object.keys(node.children).length && !recursive) return 'directory not empty (use rm -r): ' + name;
+  delete parent.children[name];
+  parent.mtime = fsNow();
+  fsSave();
+  return null;
+}
+function fsRename(parts, newName){
+  const parent = fsGet(parts.slice(0, -1));
+  const name = parts[parts.length - 1];
+  if(!parent || !parent.children[name]) return 'no such file';
+  if(!newName || /[\/]/.test(newName)) return 'bad name';
+  if(parent.children[newName]) return 'already exists: ' + newName;
+  parent.children[newName] = parent.children[name];
+  delete parent.children[name];
+  parent.mtime = fsNow();
+  fsSave();
+  return null;
+}
+function fsSizeOf(node){
+  if(node.type === 'file') return node.content.length;
+  return Object.values(node.children).reduce((a, c) => a + fsSizeOf(c), 0);
+}
+
+/* ---------------------------- session / phases ---------------------------- */
+let user = store.get('kos.user', null);
+let BOOT_T = Date.now();
+let deskBuilt = false;
+
+function setPhase(p){ document.body.dataset.phase = p; }
+
+const BOOT_LINES = [
+  [90,  '<span class="dim">NKO FIRMWARE 7.02 — cubic build</span>'],
+  [200, '<span class="tag">[ OK ]</span> display pipeline: 2 eyes @ 120 Hz'],
+  [140, '<span class="tag">[ OK ]</span> swallow kernel 6.1.0-nko'],
+  [180, '<span class="tag">[ OK ]</span> mounting /home — local vault, nothing leaves the device'],
+  [150, '<span class="tag">[ OK ]</span> mounting /krypto — escrow intact'],
+  [160, '<span class="tag">[ OK ]</span> wireframe globe spun up'],
+  [230, '<span class="tagw">[WAIT]</span> LASTOCHKA neural core ....... no uplink, deferred'],
+  [140, '<span class="tag">[ OK ]</span> window manager: KWM, corners set to cubic'],
+  [190, '<span class="tag">[ OK ]</span> KONEKT OS 1.4.2 (build 2618) ready']
+];
+let bootTimer = null;
+function boot(){
+  setPhase('boot');
+  BOOT_T = Date.now();
+  const log = $('#bootLog');
+  $('#bootMark').innerHTML = logoLong(30);
+  log.innerHTML = '';
+  $('#bootFill').style.width = '0%';
+  let i = 0, done = false;
+  const total = BOOT_LINES.reduce((a, l) => a + l[0], 0) + 350;
+  function finish(){
+    if(done) return;
+    done = true;
+    clearTimeout(bootTimer);
+    user ? lock() : firstRun();
+  }
+  function step(){
+    if(i >= BOOT_LINES.length){ bootTimer = setTimeout(finish, 380); return; }
+    const [d, txt] = BOOT_LINES[i];
+    bootTimer = setTimeout(() => {
+      log.appendChild(el('<div class="ok">' + txt + '</div>'));
+      i++;
+      $('#bootFill').style.width = Math.round(i / BOOT_LINES.length * 100) + '%';
+      step();
+    }, d);
+  }
+  step();
+  $('#boot').onclick = finish;
+}
+
+function lockClockTick(){
+  const n = new Date();
+  const hEl = $('#lkH'), dEl = $('#lkD');
+  if(!hEl) return;
+  hEl.textContent = two(n.getHours()) + ':' + two(n.getMinutes());
+  dEl.textContent = DAYS[n.getDay()] + ' · ' + n.getDate() + ' ' + MONTHS[n.getMonth()] + ' ' + n.getFullYear();
+}
+function lockShell(inner){
+  $('#lock').innerHTML =
+    '<div id="lkH"></div>' +
+    '<div id="lkD"></div>' +
+    inner +
+    '<div id="lockPower">' +
+      '<button id="lkReboot" title="Reboot">' + IC.restart + '</button>' +
+      '<button id="lkShut" title="Shut down">' + IC.power + '</button>' +
+    '</div>';
+  lockClockTick();
+  $('#lkReboot').onclick = () => boot();
+  $('#lkShut').onclick = () => shutdown();
+}
+function firstRun(){
+  setPhase('lock');
+  lockShell(
+    '<div class="lock-tile">' +
+      '<div style="margin-bottom:6px">' + logoLong(24) + '</div>' +
+      '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)">who wears this headset?</div>' +
+      '<input id="lkName" class="lock-in" maxlength="24" placeholder="your name" autocomplete="off" spellcheck="false">' +
+      '<button id="lkGo" class="btn-solid">begin</button>' +
+    '</div>' +
+    '<div class="lock-hint">local account — it never leaves the device</div>'
+  );
+  const inp = $('#lkName');
+  const go = () => {
+    const name = inp.value.trim();
+    if(!name){ inp.focus(); return; }
+    user = { name, created: Date.now() };
+    store.set('kos.user', user);
+    enterDesktop();
+  };
+  $('#lkGo').onclick = go;
+  inp.onkeydown = e => { if(e.key === 'Enter') go(); };
+  setTimeout(() => inp.focus(), 60);
+}
+function lock(){
+  setPhase('lock');
+  lockShell(
+    '<div class="lock-tile">' +
+      '<div class="lock-av">' + esc(user.name[0].toUpperCase()) + '</div>' +
+      '<div class="lock-name">' + esc(user.name) + '</div>' +
+      '<button id="lkGo" class="btn-solid">enter</button>' +
+    '</div>' +
+    '<button id="lkReset" class="lock-reset">not you? erase this device</button>'
+  );
+  $('#lkGo').onclick = () => enterDesktop();
+  let armed = false;
+  $('#lkReset').onclick = e => {
+    if(!armed){ armed = true; e.target.textContent = 'click again — erases every file'; return; }
+    factoryReset();
+  };
+  const onKey = e => {
+    if(document.body.dataset.phase === 'lock' && e.key === 'Enter' && $('#lkGo')) enterDesktop();
+  };
+  document.addEventListener('keydown', onKey, { once:true });
+}
+function shutdown(){
+  closeAllWindows();
+  $('#shutMark').innerHTML = globe(44, 5);
+  $('#shutMark').style.color = '#2a2a2a';
+  setPhase('shut');
+  $('#shut').onclick = () => boot();
+  document.addEventListener('keydown', function once(){
+    if(document.body.dataset.phase === 'shut') boot();
+    document.removeEventListener('keydown', once);
+  });
+}
+function factoryReset(){
+  ['kos.user', 'kos.fs', 'kos.settings'].forEach(k => store.del(k));
+  location.reload();
+}
+function enterDesktop(){
+  if(!deskBuilt) buildDesktop();
+  renderIcons();
+  renderStartMenu();
+  setPhase('os');
+}
+
+/* ---------------------------- window manager ---------------------------- */
+const wm = { wins: [], z: 10 };
+const isSmall = () => matchMedia('(max-width:720px)').matches;
+
+function winFor(appId){ return wm.wins.find(w => w.app === appId) || null; }
+function focusWin(w){
+  wm.wins.forEach(x => x.el.classList.remove('focus'));
+  w.el.classList.add('focus');
+  w.el.style.zIndex = ++wm.z;
+  tbSync();
+}
+function topWin(){
+  let best = null;
+  for(const w of wm.wins)
+    if(!w.min && (!best || +w.el.style.zIndex > +best.el.style.zIndex)) best = w;
+  return best;
+}
+function closeWin(w){
+  wm.wins = wm.wins.filter(x => x !== w);
+  if(w.onClose) try{ w.onClose(); }catch(e){}
+  w.el.remove();
+  const t = topWin();
+  if(t) focusWin(t); else tbSync();
+}
+function closeAllWindows(){ wm.wins.slice().forEach(closeWin); }
+function minWin(w){
+  w.min = true;
+  w.el.classList.add('minz');
+  const t = topWin();
+  if(t) focusWin(t); else tbSync();
+}
+function unminWin(w){
+  w.min = false;
+  w.el.classList.remove('minz');
+  focusWin(w);
+}
+function maxWin(w, on){
+  w.maxed = on;
+  if(on){
+    w.restoreRect = { l: w.el.offsetLeft, t: w.el.offsetTop, w: w.el.offsetWidth, h: w.el.offsetHeight };
+    Object.assign(w.el.style, { left:'0px', top:'0px', width:'100%', height:'100%' });
+    w.el.classList.add('maxed');
+  } else {
+    const r = w.restoreRect || { l:40, t:40, w:640, h:440 };
+    Object.assign(w.el.style, { left:r.l+'px', top:r.t+'px', width:r.w+'px', height:r.h+'px' });
+    w.el.classList.remove('maxed');
+  }
+  w.btnMax.innerHTML = on ? IC.restore : IC.max;
+  w.btnMax.title = on ? 'Restore' : 'Maximize';
+}
+let spawnN = 0;
+function createWin(appId, title, iconSvg, opts){
+  opts = opts || {};
+  const desk = $('#desk');
+  const w = {
+    app: appId, title, icon: iconSvg,
+    min: false, maxed: false, restoreRect: null, onClose: null
+  };
+  const winEl = el(
+    '<section class="win" role="dialog" aria-label="' + esc(title) + '">' +
+      '<header class="win-tb">' +
+        '<span class="win-ic">' + iconSvg + '</span>' +
+        '<span class="win-t">' + esc(title) + '</span>' +
+        '<button class="wb min" title="Minimize">' + IC.min + '</button>' +
+        '<button class="wb mx" title="Maximize">' + IC.max + '</button>' +
+        '<button class="wb cls" title="Close">' + IC.cls + '</button>' +
+      '</header>' +
+      '<div class="win-body"></div>' +
+      '<i class="rs n"></i><i class="rs s"></i><i class="rs e"></i><i class="rs w"></i>' +
+      '<i class="rs ne"></i><i class="rs nw"></i><i class="rs se"></i><i class="rs sw"></i>' +
+    '</section>');
+  w.el = winEl;
+  w.body = $('.win-body', winEl);
+  w.titleEl = $('.win-t', winEl);
+  w.btnMax = $('.wb.mx', winEl);
+
+  const dw = desk.clientWidth, dh = desk.clientHeight;
+  const ww = Math.min(opts.w || 640, dw - 20), wh = Math.min(opts.h || 440, dh - 20);
+  const off = (spawnN++ % 7) * 26;
+  winEl.style.width = ww + 'px';
+  winEl.style.height = wh + 'px';
+  winEl.style.left = Math.max(6, Math.min(dw - ww - 6, Math.round((dw - ww) / 2) + off - 60)) + 'px';
+  winEl.style.top  = Math.max(6, Math.min(dh - wh - 6, Math.round((dh - wh) / 2.4) + off - 40)) + 'px';
+
+  winEl.addEventListener('pointerdown', () => { if(topWin() !== w) focusWin(w); });
+  $('.wb.min', winEl).onclick = e => { e.stopPropagation(); minWin(w); };
+  w.btnMax.onclick = e => { e.stopPropagation(); maxWin(w, !w.maxed); };
+  $('.wb.cls', winEl).onclick = e => { e.stopPropagation(); closeWin(w); };
+
+  installDrag(w);
+  installResize(w);
+
+  $('#winlayer').appendChild(winEl);
+  wm.wins.push(w);
+  if(isSmall()) maxWin(w, true);
+  focusWin(w);
+  return w;
+}
+function setWinTitle(w, t){ w.title = t; w.titleEl.textContent = t; tbSync(); }
+
+/* drag + edge snap */
+const ghost = () => $('#snapghost');
+function snapRect(kind, dw, dh){
+  if(kind === 'left')  return { l:0, t:0, w:Math.round(dw/2), h:dh };
+  if(kind === 'right') return { l:Math.round(dw/2), t:0, w:dw - Math.round(dw/2), h:dh };
+  if(kind === 'top')   return { l:0, t:0, w:dw, h:dh };
+  return null;
+}
+function installDrag(w){
+  const tb = $('.win-tb', w.el);
+  let sx, sy, sl, st, moved, snap;
+  tb.addEventListener('pointerdown', e => {
+    if(e.target.closest('.wb') || e.button === 2 || isSmall()) return;
+    focusWin(w);
+    sx = e.clientX; sy = e.clientY;
+    sl = w.el.offsetLeft; st = w.el.offsetTop;
+    moved = false; snap = null;
+    tb.setPointerCapture(e.pointerId);
+    document.body.classList.add('dragging');
+    w.el.classList.add('dragged');
+
+    const move = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if(!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+      if(w.maxed){
+        /* dragging a maximized window peels it off under the pointer */
+        const r = w.restoreRect || { w:640, h:440 };
+        maxWin(w, false);
+        sl = Math.round(ev.clientX - r.w / 2); st = Math.max(0, ev.clientY - 14);
+        w.el.style.left = sl + 'px'; w.el.style.top = st + 'px';
+        sx = ev.clientX; sy = ev.clientY;
+        moved = true;
+        return;
+      }
+      moved = true;
+      const desk = $('#desk'), dw = desk.clientWidth, dh = desk.clientHeight;
+      let nl = sl + dx, nt = st + dy;
+      nt = Math.max(0, Math.min(dh - 30, nt));
+      nl = Math.max(60 - w.el.offsetWidth, Math.min(dw - 60, nl));
+      w.el.style.left = nl + 'px';
+      w.el.style.top = nt + 'px';
+      const g = ghost();
+      snap = ev.clientX <= 6 ? 'left' : ev.clientX >= dw - 6 ? 'right' : ev.clientY <= 4 ? 'top' : null;
+      if(snap){
+        const r = snapRect(snap, dw, dh);
+        Object.assign(g.style, { display:'block', left:r.l+'px', top:r.t+'px', width:r.w+'px', height:r.h+'px' });
+      } else g.style.display = 'none';
+    };
+    const up = ev => {
+      tb.releasePointerCapture(e.pointerId);
+      tb.removeEventListener('pointermove', move);
+      tb.removeEventListener('pointerup', up);
+      tb.removeEventListener('pointercancel', up);
+      document.body.classList.remove('dragging');
+      w.el.classList.remove('dragged');
+      ghost().style.display = 'none';
+      if(!snap) return;
+      const desk = $('#desk');
+      if(snap === 'top'){ maxWin(w, true); return; }
+      const r = snapRect(snap, desk.clientWidth, desk.clientHeight);
+      w.restoreRect = { l: w.el.offsetLeft, t: w.el.offsetTop, w: w.el.offsetWidth, h: w.el.offsetHeight };
+      Object.assign(w.el.style, { left:r.l+'px', top:r.t+'px', width:r.w+'px', height:r.h+'px' });
+    };
+    tb.addEventListener('pointermove', move);
+    tb.addEventListener('pointerup', up);
+    tb.addEventListener('pointercancel', up);
+  });
+  tb.addEventListener('dblclick', e => {
+    if(e.target.closest('.wb') || isSmall()) return;
+    maxWin(w, !w.maxed);
+  });
+}
+function installResize(w){
+  $$('.rs', w.el).forEach(h => {
+    h.addEventListener('pointerdown', e => {
+      if(w.maxed) return;
+      e.preventDefault();
+      focusWin(w);
+      const dir = h.className.replace('rs ', '');
+      const sx = e.clientX, sy = e.clientY;
+      const sl = w.el.offsetLeft, st = w.el.offsetTop;
+      const sw = w.el.offsetWidth, sh = w.el.offsetHeight;
+      const minW = 260, minH = 160;
+      h.setPointerCapture(e.pointerId);
+      document.body.classList.add('dragging');
+      w.el.classList.add('dragged');
+      const move = ev => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        let nl = sl, nt = st, nw = sw, nh = sh;
+        if(dir.includes('e')) nw = Math.max(minW, sw + dx);
+        if(dir.includes('s')) nh = Math.max(minH, sh + dy);
+        if(dir.includes('w')){ nw = Math.max(minW, sw - dx); nl = sl + (sw - nw); }
+        if(dir.includes('n')){ nh = Math.max(minH, sh - dy); nt = Math.max(0, st + (sh - nh)); nh = sh + (st - nt); }
+        Object.assign(w.el.style, { left:nl+'px', top:nt+'px', width:nw+'px', height:nh+'px' });
+      };
+      const up = () => {
+        h.releasePointerCapture(e.pointerId);
+        h.removeEventListener('pointermove', move);
+        h.removeEventListener('pointerup', up);
+        document.body.classList.remove('dragging');
+        w.el.classList.remove('dragged');
+      };
+      h.addEventListener('pointermove', move);
+      h.addEventListener('pointerup', up);
+    });
+  });
+}
+
+/* ---------------------------- taskbar ---------------------------- */
+function tbSync(){
+  const box = $('#tasks');
+  if(!box) return;
+  box.innerHTML = '';
+  const top = topWin();
+  wm.wins.forEach(w => {
+    const b = el('<button class="task' + (w.min ? ' minz' : '') + (w === top && !w.min ? ' on' : '') + '" aria-label="' + esc(w.title) + '">' +
+      w.icon + '<span class="t">' + esc(w.title) + '</span></button>');
+    b.onclick = () => {
+      if(w.min) unminWin(w);
+      else if(topWin() === w) minWin(w);
+      else focusWin(w);
+    };
+    box.appendChild(b);
+  });
+}
+function clockTick(){
+  const n = new Date();
+  const h = $('#trClock .h'), d = $('#trClock .d');
+  if(h){
+    h.textContent = two(n.getHours()) + ':' + two(n.getMinutes());
+    d.textContent = n.getDate() + ' ' + MONTHS[n.getMonth()];
+  }
+  lockClockTick();
+}
+function uplinkSync(){
+  $('#trUp').classList.toggle('off', !navigator.onLine);
+}
+
+/* ---------------------------- start menu / context menu ---------------------------- */
+function renderStartMenu(){
+  const m = $('#smenu');
+  m.innerHTML =
+    '<div class="sm-head">' +
+      '<div class="sm-av">' + esc(user.name[0].toUpperCase()) + '</div>' +
+      '<div><div class="sm-n">' + esc(user.name) + '</div>' +
+      '<div class="sm-d">KONEKT.WORLD headset · KonektOS 1.4</div></div>' +
+    '</div>' +
+    '<div class="sm-list">' +
+      Object.entries(APPS).map(([id, a]) =>
+        '<button class="sm-i" data-app="' + id + '" aria-label="' + a.name + '">' + a.icon + '<span>' + a.name + '</span></button>').join('') +
+    '</div>' +
+    '<div class="sm-foot">' +
+      '<button class="sm-p" data-p="lock" aria-label="Lock">' + IC.lock + '<span>lock</span></button>' +
+      '<button class="sm-p" data-p="reboot" aria-label="Reboot">' + IC.restart + '<span>reboot</span></button>' +
+      '<button class="sm-p" data-p="shut" aria-label="Shut down">' + IC.power + '<span>shut down</span></button>' +
+    '</div>';
+  $$('.sm-i', m).forEach(b => b.onclick = () => { toggleStart(false); openApp(b.dataset.app); });
+  $$('.sm-p', m).forEach(b => b.onclick = () => {
+    toggleStart(false);
+    if(b.dataset.p === 'lock') lock();
+    if(b.dataset.p === 'reboot'){ closeAllWindows(); boot(); }
+    if(b.dataset.p === 'shut') shutdown();
+  });
+}
+function toggleStart(on){
+  const m = $('#smenu');
+  const want = on === undefined ? !m.classList.contains('on') : on;
+  m.classList.toggle('on', want);
+  $('#stBtn').classList.toggle('on', want);
+}
+function showCMenu(x, y, items){
+  const m = $('#cmenu');
+  m.innerHTML = items.map((it, i) =>
+    it === '-' ? '<div class="sep"></div>' :
+    '<button data-i="' + i + '">' + (it.icon || '') + esc(it.t) + '</button>').join('');
+  $$('button', m).forEach(b => b.onclick = () => { hideCMenu(); items[+b.dataset.i].fn(); });
+  m.classList.add('on');
+  const mw = m.offsetWidth, mh = m.offsetHeight;
+  m.style.left = Math.min(x, innerWidth - mw - 6) + 'px';
+  m.style.top = Math.min(y, innerHeight - mh - 6) + 'px';
+}
+function hideCMenu(){ $('#cmenu').classList.remove('on'); }
+
+/* ---------------------------- desktop icons ---------------------------- */
+function renderIcons(){
+  const box = $('#icons');
+  box.innerHTML = '';
+  const add = (iconSvg, label, open, ctx) => {
+    const d = el('<button class="dico" aria-label="' + esc(label) + '">' + iconSvg + '<span class="t">' + esc(label) + '</span></button>');
+    d.onclick = e => { e.stopPropagation(); $$('.dico', box).forEach(x => x.classList.remove('sel')); d.classList.add('sel'); };
+    d.ondblclick = e => { e.stopPropagation(); open(); };
+    d.onkeydown = e => { if(e.key === 'Enter') open(); };
+    if(ctx) d.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); showCMenu(e.clientX, e.clientY, ctx()); };
+    box.appendChild(d);
+  };
+  Object.entries(APPS).forEach(([id, a]) => add(a.icon, a.name, () => openApp(id)));
+  /* real files from ~/Desktop, after the apps */
+  const dt = fsGet(HOME.concat('Desktop'));
+  if(dt && dt.type === 'dir'){
+    Object.keys(dt.children).sort().forEach(name => {
+      const node = dt.children[name];
+      const p = HOME.concat('Desktop', name);
+      const open = node.type === 'dir'
+        ? () => openApp('files', { path: p })
+        : () => openApp('notes', { path: p });
+      add(node.type === 'dir' ? IC.files : IC.file, name, open, () => [
+        { t:'Open', icon:IC.file, fn: open },
+        { t:'Delete', icon:IC.trash, fn: () => { fsRm(p, true); renderIcons(); refreshFiles(); } }
+      ]);
+    });
+  }
+}
+
+/* ---------------------------- apps ---------------------------- */
+const APPS = {
+  konekt: { name:'KONEKT',   icon: IC.globe, w:1080, h:700, launch: launchKonekt },
+  files:  { name:'FILES',    icon: IC.files, w:700,  h:480, launch: launchFiles },
+  term:   { name:'TERMINAL', icon: IC.term,  w:640,  h:420, launch: launchTerm },
+  notes:  { name:'NOTES',    icon: IC.notes, w:680,  h:460, launch: launchNotes },
+  calc:   { name:'KALC',     icon: IC.calc,  w:280,  h:420, launch: launchCalc },
+  set:    { name:'SETTINGS', icon: IC.set,   w:640,  h:470, launch: launchSettings }
+};
+function openApp(id, arg){
+  const a = APPS[id];
+  if(!a) return;
+  let w = winFor(id);
+  if(w){
+    if(w.min) unminWin(w); else focusWin(w);
+    if(w.onArg && arg) w.onArg(arg);
+    return w;
+  }
+  w = createWin(id, a.name, a.icon, { w: a.w, h: a.h });
+  a.launch(w, arg);
+  tbSync();
+  return w;
+}
+
+/* ---------- KONEKT (the network, embedded) ---------- */
+const KONEKT_URL = 'https://konekt-tawny.vercel.app/';
+function launchKonekt(w){
+  w.body.innerHTML =
+    '<div class="kn">' +
+      '<div class="kn-ov"><div class="pulse">' + globe(40, 5) + '</div>' +
+        '<div class="s">connecting to konekt</div>' +
+        '<a href="' + KONEKT_URL + '" target="_blank" rel="noopener">open in browser instead</a>' +
+      '</div>' +
+      '<iframe title="KONEKT" allow="camera; microphone; fullscreen; clipboard-write"></iframe>' +
+    '</div>';
+  const f = $('iframe', w.body);
+  const ov = $('.kn-ov', w.body);
+  const t = setTimeout(() => { $('.s', ov).textContent = 'still connecting — or open in browser'; }, 8000);
+  f.addEventListener('load', () => { clearTimeout(t); setTimeout(() => ov.classList.add('off'), 350); });
+  f.src = KONEKT_URL;
+  w.onClose = () => clearTimeout(t);
+}
+
+/* ---------- FILES ---------- */
+let filesRefresh = null;
+function refreshFiles(){ if(filesRefresh) filesRefresh(); }
+function launchFiles(w, arg){
+  const st = { cwd: (arg && arg.path) ? arg.path.slice() : HOME.slice(), sel: null, hist: [] };
+  w.body.innerHTML =
+    '<div class="fx">' +
+      '<div class="fx-bar">' +
+        '<button class="fx-b bk" title="Back">' + IC.back + '</button>' +
+        '<button class="fx-b up" title="Up">' + IC.up + '</button>' +
+        '<div class="fx-path scroll"></div>' +
+        '<button class="fx-b nf" title="New folder">' + IC.files + '</button>' +
+        '<button class="fx-b nd" title="New text file">' + IC.plus + '</button>' +
+        '<button class="fx-b rn" title="Rename">' + IC.pencil + '</button>' +
+        '<button class="fx-b dl" title="Delete">' + IC.trash + '</button>' +
+      '</div>' +
+      '<div class="fx-grid scroll"></div>' +
+      '<div class="fx-status"><span class="l"></span><span class="r"></span></div>' +
+    '</div>';
+  const grid = $('.fx-grid', w.body), path = $('.fx-path', w.body);
+  const stL = $('.fx-status .l', w.body), stR = $('.fx-status .r', w.body);
+  const bBk = $('.bk', w.body), bUp = $('.up', w.body), bRn = $('.rn', w.body), bDl = $('.dl', w.body);
+
+  function go(parts, push){
+    const node = fsGet(parts);
+    if(!node || node.type !== 'dir') return;
+    if(push !== false) st.hist.push(st.cwd.slice());
+    st.cwd = parts.slice();
+    st.sel = null;
+    render();
+  }
+  function note(t){ stR.textContent = t; setTimeout(() => { if(stR.textContent === t) stR.textContent = ''; }, 2600); }
+  function startRename(name){
+    const it = $$('.fi', grid).find(x => x.dataset.name === name);
+    if(!it) return;
+    const t = $('.t', it);
+    t.outerHTML = '<input class="ren" value="' + esc(name) + '" spellcheck="false">';
+    const inp = $('.ren', it);
+    inp.focus();
+    const dot = name.lastIndexOf('.');
+    inp.setSelectionRange(0, dot > 0 ? dot : name.length);
+    const commit = ok => {
+      const nn = inp.value.trim();
+      if(ok && nn && nn !== name){
+        const err = fsRename(st.cwd.concat(name), nn);
+        if(err){ note(err); }
+      }
+      render(); renderIcons();
+    };
+    inp.onkeydown = e => {
+      if(e.key === 'Enter') commit(true);
+      if(e.key === 'Escape') commit(false);
+      e.stopPropagation();
+    };
+    inp.onblur = () => commit(true);
+    inp.onclick = e => e.stopPropagation();
+    inp.ondblclick = e => e.stopPropagation();
+  }
+  function openEntry(name, node){
+    if(node.type === 'dir'){ go(st.cwd.concat(name)); return; }
+    openApp('notes', { path: st.cwd.concat(name) });
+  }
+  function render(){
+    const dir = fsGet(st.cwd);
+    if(!dir){ go(HOME, false); return; }
+    /* breadcrumb */
+    path.innerHTML = '<button class="fx-crumb" data-i="0">HEADSET</button>';
+    st.cwd.forEach((seg, i) => {
+      path.insertAdjacentHTML('beforeend',
+        '<span class="fx-sl">/</span><button class="fx-crumb' + (i === st.cwd.length - 1 ? ' cur' : '') + '" data-i="' + (i + 1) + '">' + esc(seg) + '</button>');
+    });
+    $$('.fx-crumb', path).forEach(c => c.onclick = () => go(st.cwd.slice(0, +c.dataset.i)));
+    /* entries: dirs first, then files */
+    grid.innerHTML = '';
+    const names = Object.keys(dir.children).sort((a, b) => {
+      const A = dir.children[a], B = dir.children[b];
+      if(A.type !== B.type) return A.type === 'dir' ? -1 : 1;
+      return a.localeCompare(b);
+    });
+    names.forEach(name => {
+      const node = dir.children[name];
+      const it = el('<button class="fi ' + node.type + '" data-name="' + esc(name) + '" aria-label="' + esc(name) + '">' +
+        (node.type === 'dir' ? IC.files : IC.file) + '<span class="t">' + esc(name) + '</span></button>');
+      it.onclick = e => { e.stopPropagation(); st.sel = name; $$('.fi', grid).forEach(x => x.classList.remove('sel')); it.classList.add('sel'); syncBtns(); };
+      it.ondblclick = e => { e.stopPropagation(); openEntry(name, node); };
+      it.oncontextmenu = e => {
+        e.preventDefault(); e.stopPropagation();
+        st.sel = name; $$('.fi', grid).forEach(x => x.classList.remove('sel')); it.classList.add('sel'); syncBtns();
+        showCMenu(e.clientX, e.clientY, [
+          { t:'Open', icon:IC.file, fn: () => openEntry(name, node) },
+          { t:'Rename', icon:IC.pencil, fn: () => startRename(name) },
+          '-',
+          { t:'Delete', icon:IC.trash, fn: () => del(name) }
+        ]);
+      };
+      grid.appendChild(it);
+    });
+    grid.onclick = () => { st.sel = null; $$('.fi', grid).forEach(x => x.classList.remove('sel')); syncBtns(); };
+    stL.textContent = names.length + ' item' + (names.length === 1 ? '' : 's');
+    syncBtns();
+  }
+  function syncBtns(){
+    bUp.disabled = !st.cwd.length;
+    bBk.disabled = !st.hist.length;
+    bRn.disabled = !st.sel;
+    bDl.disabled = !st.sel;
+  }
+  function del(name){
+    const err = fsRm(st.cwd.concat(name), true);
+    note(err || ('deleted ' + name));
+    st.sel = null;
+    render(); renderIcons(); refreshNotesList();
+  }
+  function fresh(base){
+    let n = base, i = 2;
+    const dir = fsGet(st.cwd);
+    const dot = base.lastIndexOf('.');
+    while(dir.children[n]){
+      n = dot > 0 ? base.slice(0, dot) + '-' + i + base.slice(dot) : base + '-' + i;
+      i++;
+    }
+    return n;
+  }
+  bBk.onclick = () => { const p = st.hist.pop(); if(p) go(p, false); };
+  bUp.onclick = () => { if(st.cwd.length) go(st.cwd.slice(0, -1)); };
+  $('.nf', w.body).onclick = () => { const n = fresh('new-folder'); fsMk(st.cwd.concat(n), fdir()); render(); renderIcons(); startRename(n); };
+  $('.nd', w.body).onclick = () => { const n = fresh('new-file.txt'); fsMk(st.cwd.concat(n), ffile('')); render(); renderIcons(); refreshNotesList(); startRename(n); };
+  bRn.onclick = () => { if(st.sel) startRename(st.sel); };
+  bDl.onclick = () => { if(st.sel) del(st.sel); };
+
+  w.onArg = a => { if(a && a.path) go(a.path); };
+  filesRefresh = render;
+  w.onClose = () => { if(filesRefresh === render) filesRefresh = null; };
+  render();
+}
+
+/* ---------- NOTES ---------- */
+let notesListRefresh = null;
+function refreshNotesList(){ if(notesListRefresh) notesListRefresh(); }
+function launchNotes(w, arg){
+  const st = { path: null, dirty: false, timer: null };
+  w.body.innerHTML =
+    '<div class="nx">' +
+      '<div class="nx-side">' +
+        '<div class="nx-head"><span>notes</span><button class="nx-new" title="New note">' + IC.plus + '</button></div>' +
+        '<div class="nx-list scroll"></div>' +
+      '</div>' +
+      '<div class="nx-main">' +
+        '<div class="nx-empty">select or create a note</div>' +
+        '<textarea class="nx-ta scroll" style="display:none" spellcheck="false"></textarea>' +
+        '<div class="nx-status"><span class="l"></span><span class="r"></span></div>' +
+      '</div>' +
+    '</div>';
+  const list = $('.nx-list', w.body), ta = $('.nx-ta', w.body), empty = $('.nx-empty', w.body);
+  const stL = $('.nx-status .l', w.body), stR = $('.nx-status .r', w.body);
+
+  function findTexts(){
+    /* every .txt under home, shallow walk of the usual folders */
+    const out = [];
+    const walk = (parts, depth) => {
+      const node = fsGet(parts);
+      if(!node || node.type !== 'dir' || depth > 3) return;
+      Object.keys(node.children).sort().forEach(name => {
+        const c = node.children[name];
+        if(c.type === 'file' && /\.txt$/i.test(name)) out.push(parts.concat(name));
+        else if(c.type === 'dir') walk(parts.concat(name), depth + 1);
+      });
+    };
+    walk(HOME, 0);
+    return out;
+  }
+  function renderList(){
+    list.innerHTML = '';
+    findTexts().forEach(p => {
+      const on = st.path && fsPathStr(p) === fsPathStr(st.path);
+      const b = el('<button class="nx-it' + (on ? ' on' : '') + '">' +
+        '<span class="n">' + esc(p[p.length - 1]) + '</span>' +
+        '<span class="p">' + esc(fsTilde(p.slice(0, -1))) + '</span></button>');
+      b.onclick = () => load(p);
+      list.appendChild(b);
+    });
+  }
+  function load(p){
+    flush();
+    const node = fsGet(p);
+    if(!node || node.type !== 'file'){ st.path = null; sync(); return; }
+    st.path = p.slice();
+    ta.value = node.content;
+    sync();
+    ta.focus();
+  }
+  function sync(){
+    const has = !!st.path;
+    ta.style.display = has ? '' : 'none';
+    empty.style.display = has ? 'none' : '';
+    stL.textContent = has ? fsTilde(st.path) : '';
+    if(!has) stR.textContent = '';
+    renderList();
+    setWinTitle(w, has ? 'NOTES — ' + st.path[st.path.length - 1] : 'NOTES');
+  }
+  function flush(){
+    if(st.timer){ clearTimeout(st.timer); st.timer = null; }
+    if(st.dirty && st.path){
+      fsWrite(st.path, ta.value);
+      st.dirty = false;
+      const n = new Date();
+      stR.textContent = 'saved ' + two(n.getHours()) + ':' + two(n.getMinutes()) + ':' + two(n.getSeconds());
+    }
+  }
+  ta.addEventListener('input', () => {
+    st.dirty = true;
+    stR.textContent = 'typing…';
+    if(st.timer) clearTimeout(st.timer);
+    st.timer = setTimeout(flush, 500);
+  });
+  $('.nx-new', w.body).onclick = () => {
+    const dir = fsGet(HOME.concat('Documents')) ? HOME.concat('Documents') : HOME;
+    let n = 'note.txt', i = 2;
+    while(fsGet(dir.concat(n))) { n = 'note-' + i + '.txt'; i++; }
+    fsMk(dir.concat(n), ffile(''));
+    refreshFiles(); renderIcons();
+    load(dir.concat(n));
+  };
+  w.onArg = a => { if(a && a.path) load(a.path); };
+  notesListRefresh = renderList;
+  w.onClose = () => { flush(); if(notesListRefresh === renderList) notesListRefresh = null; };
+  if(arg && arg.path) load(arg.path); else sync();
+}
+
+/* ---------- TERMINAL ---------- */
+const NEOFETCH_ART = [
+'      _.-=======-._      ',
+'    .;  _.-===-._  ;.    ',
+'   / | (         ) | \\   ',
+'  ;  ;  |       |  ;  ;  ',
+'  |==+==+===+===+==+==|  ',
+'  ;  ;  |       |  ;  ;  ',
+'   \\ | (_       _) | /   ',
+'    \';  \'-===-\'  ;\'      ',
+'      \'-.._____..-\'      '
+];
+function launchTerm(w){
+  w.body.innerHTML = '<div class="term scroll" tabindex="0"></div>';
+  const box = $('.term', w.body);
+  const st = { cwd: HOME.slice(), hist: [], hi: -1 };
+
+  function print(html, cls){
+    box.insertAdjacentHTML('beforeend', '<div class="tl' + (cls ? ' ' + cls : '') + '">' + html + '</div>');
+  }
+  function printText(t, cls){ print(esc(t), cls); }
+  function ps(){ return user.name.toLowerCase().replace(/\s+/g, '') + '@konekt.world:' + fsTilde(st.cwd) + '$ '; }
+  function inputRow(){
+    const row = el('<div class="term-row"><span class="term-ps">' + esc(ps()) + '</span>' +
+      '<input class="term-in" autocomplete="off" autocapitalize="off" spellcheck="false"></div>');
+    box.appendChild(row);
+    const inp = $('input', row);
+    inp.focus();
+    inp.onkeydown = e => {
+      if(e.key === 'Enter'){
+        const line = inp.value;
+        row.remove();
+        print('<span class="grn">' + esc(ps()) + '</span>' + esc(line));
+        if(line.trim()){ st.hist.push(line); st.hi = st.hist.length; run(line.trim()); }
+        if(document.body.contains(box)) inputRow();
+      } else if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        if(st.hi > 0){ st.hi--; inp.value = st.hist[st.hi] || ''; }
+      } else if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        if(st.hi < st.hist.length){ st.hi++; inp.value = st.hist[st.hi] || ''; }
+      } else if(e.key === 'c' && e.ctrlKey){
+        row.remove();
+        print('<span class="grn">' + esc(ps()) + '</span>' + esc(inp.value) + '^C');
+        inputRow();
+      } else if(e.key === 'l' && e.ctrlKey){
+        e.preventDefault();
+        $$('.tl', box).forEach(x => x.remove());
+      }
+    };
+    box.scrollTop = box.scrollHeight;
+  }
+  function run(line){
+    /* echo with > / >> redirection is handled before normal parsing */
+    const rd = line.match(/^echo\s+([\s\S]*?)\s*(>>?)\s*(\S+)$/);
+    if(rd){
+      const err = fsWrite(fsResolve(rd[3], st.cwd), rd[1].replace(/^"|"$/g, '') + '\n', rd[2] === '>>');
+      if(err) printText(err, 'err'); else { refreshFiles(); refreshNotesList(); renderIcons(); }
+      return;
+    }
+    const parts = line.split(/\s+/);
+    const cmd = parts[0], args = parts.slice(1);
+    const C = COMMANDS[cmd];
+    if(!C){ printText('ksh: ' + cmd + ': command not found (try "help")', 'err'); return; }
+    C.fn(args);
+    box.scrollTop = box.scrollHeight;
+  }
+  const COMMANDS = {
+    help: { d:'this list', fn(){
+      const names = Object.keys(COMMANDS).sort();
+      const wd = Math.max(...names.map(n => n.length)) + 3;
+      names.forEach(n => print('<span class="acc">' + n.padEnd(wd) + '</span>' + esc(COMMANDS[n].d)));
+    }},
+    ls: { d:'list a directory', fn(a){
+      const node = fsGet(a[0] ? fsResolve(a[0], st.cwd) : st.cwd);
+      if(!node){ printText('no such path', 'err'); return; }
+      if(node.type === 'file'){ printText(a[0]); return; }
+      const names = Object.keys(node.children).sort((x, y) => {
+        const X = node.children[x], Y = node.children[y];
+        if(X.type !== Y.type) return X.type === 'dir' ? -1 : 1;
+        return x.localeCompare(y);
+      });
+      if(!names.length){ printText('(empty)', 'dim'); return; }
+      names.forEach(n => {
+        const c = node.children[n];
+        print(c.type === 'dir' ? '<span class="acc">' + esc(n) + '/</span>' : esc(n) +
+          '<span class="dim">  ' + (c.type === 'file' ? c.content.length + ' B' : '') + '</span>');
+      });
+    }},
+    cd: { d:'change directory', fn(a){
+      const p = a[0] ? fsResolve(a[0], st.cwd) : HOME.slice();
+      const node = fsGet(p);
+      if(!node || node.type !== 'dir'){ printText('cd: no such directory: ' + (a[0] || '~'), 'err'); return; }
+      st.cwd = p;
+    }},
+    pwd: { d:'print working directory', fn(){ printText(fsPathStr(st.cwd)); }},
+    cat: { d:'print a file', fn(a){
+      if(!a[0]){ printText('cat: which file?', 'err'); return; }
+      const node = fsGet(fsResolve(a[0], st.cwd));
+      if(!node){ printText('cat: no such file: ' + a[0], 'err'); return; }
+      if(node.type === 'dir'){ printText('cat: is a directory: ' + a[0], 'err'); return; }
+      printText(node.content || '(empty)');
+    }},
+    echo: { d:'print text; "> file" writes it', fn(a){ printText(a.join(' ').replace(/^"|"$/g, '')); }},
+    mkdir: { d:'make a directory', fn(a){
+      if(!a[0]){ printText('mkdir: name?', 'err'); return; }
+      const err = fsMk(fsResolve(a[0], st.cwd), fdir());
+      if(err) printText(err, 'err'); else { refreshFiles(); renderIcons(); }
+    }},
+    touch: { d:'make an empty file', fn(a){
+      if(!a[0]){ printText('touch: name?', 'err'); return; }
+      const p = fsResolve(a[0], st.cwd);
+      if(fsGet(p)){ const n = fsGet(p); n.mtime = fsNow(); fsSave(); return; }
+      const err = fsMk(p, ffile(''));
+      if(err) printText(err, 'err'); else { refreshFiles(); refreshNotesList(); renderIcons(); }
+    }},
+    rm: { d:'remove (-r for directories)', fn(a){
+      const rec = a[0] === '-r';
+      const t = rec ? a[1] : a[0];
+      if(!t){ printText('rm: what?', 'err'); return; }
+      const err = fsRm(fsResolve(t, st.cwd), rec);
+      if(err) printText(err, 'err'); else { refreshFiles(); refreshNotesList(); renderIcons(); }
+    }},
+    open: { d:'open an app or a .txt file', fn(a){
+      if(!a[0]){ printText('open: konekt|files|term|notes|kalc|settings, or a path', 'err'); return; }
+      const alias = { konekt:'konekt', files:'files', term:'term', terminal:'term', notes:'notes', kalc:'calc', calc:'calc', settings:'set', set:'set' };
+      if(alias[a[0].toLowerCase()]){ openApp(alias[a[0].toLowerCase()]); return; }
+      const p = fsResolve(a[0], st.cwd);
+      const node = fsGet(p);
+      if(!node){ printText('open: no such path: ' + a[0], 'err'); return; }
+      if(node.type === 'dir') openApp('files', { path: p });
+      else openApp('notes', { path: p });
+    }},
+    wallpaper: { d:'wallpaper list|void|nebula|grid|orbit', fn(a){
+      if(!a[0] || a[0] === 'list'){ Object.keys(WALLS).forEach(k => printText((k === settings.wall ? '* ' : '  ') + k)); return; }
+      if(!WALLS[a[0]]){ printText('no such wallpaper', 'err'); return; }
+      settings.wall = a[0]; saveSettings(); applySettings(); refreshSettings();
+    }},
+    date: { d:'the time on this side of the visor', fn(){ printText(new Date().toString()); }},
+    whoami: { d:'you', fn(){ printText(user.name); }},
+    hostname: { d:'this device', fn(){ printText('konekt.world (headset rev C)'); }},
+    uname: { d:'kernel', fn(){ printText('KonektOS 1.4.2 swallow-6.1.0-nko cubic'); }},
+    uptime: { d:'time since boot', fn(){
+      const s = Math.floor((Date.now() - BOOT_T) / 1000);
+      printText('up ' + Math.floor(s / 60) + ' min ' + (s % 60) + ' s');
+    }},
+    history: { d:'command history', fn(){ st.hist.forEach((h, i) => printText('  ' + (i + 1) + '  ' + h)); }},
+    neofetch: { d:'device card', fn(){
+      const info = [
+        ['', ''],
+        ['OS',       'KonektOS 1.4.2 (build 2618)'],
+        ['Host',     'KONEKT.WORLD headset rev C'],
+        ['Kernel',   'swallow 6.1.0-nko'],
+        ['Uptime',   Math.floor((Date.now() - BOOT_T) / 60000) + ' min'],
+        ['Shell',    'ksh 1.4'],
+        ['WM',       'KWM (' + settings.corners + ')'],
+        ['Theme',    settings.theme + ' / ' + settings.wall],
+        ['Accent',   settings.accent],
+        ['Storage',  Math.max(1, Math.round(fsSizeOf(FS) / 102.4) / 10) + ' KB of ∞'],
+        ['User',     user.name]
+      ];
+      NEOFETCH_ART.forEach((line, i) => {
+        const kv = info[i] || ['', ''];
+        print('<span class="acc">' + esc(line) + '</span>  ' +
+          (kv[0] ? '<span class="grn">' + esc(kv[0].padEnd(9)) + '</span>' + esc(kv[1]) : ''));
+      });
+    }},
+    lastochka: { d:'the assistant', fn(){
+      printText('LASTOCHKA: no uplink on this build. I live in the KONEKT app —');
+      printText('           open konekt and look for the swallow.', 'dim');
+    }},
+    clear: { d:'wipe the screen (also Ctrl+L)', fn(){ $$('.tl', box).forEach(x => x.remove()); }},
+    exit: { d:'close the terminal', fn(){ const w2 = winFor('term'); if(w2) closeWin(w2); }},
+    reboot: { d:'restart the headset', fn(){ closeAllWindows(); boot(); }},
+    shutdown: { d:'power off', fn(){ shutdown(); }}
+  };
+  box.addEventListener('click', () => { const i = $('.term-in', box); if(i && !getSelection().toString()) i.focus(); });
+  print('<span class="dim">KonektOS 1.4.2 — ksh. Type "help". Nothing here leaves the device.</span>');
+  inputRow();
+}
+
+/* ---------- KALC ---------- */
+function launchCalc(w){
+  const KEYS = [
+    ['C','(',')','÷'],
+    ['7','8','9','×'],
+    ['4','5','6','−'],
+    ['1','2','3','+'],
+    ['⌫','0','.','=']
+  ];
+  w.body.innerHTML =
+    '<div class="kc" tabindex="0">' +
+      '<div class="kc-out"></div><div class="kc-cur">0</div>' +
+      '<div class="kc-grid">' +
+        KEYS.flat().map(k =>
+          '<button class="kc-b' + ('÷×−+()'.includes(k) || k === 'C' || k === '⌫' ? ' op' : '') + (k === '=' ? ' eq' : '') + '" data-k="' + k + '">' + k + '</button>').join('') +
+      '</div>' +
+    '</div>';
+  const cur = $('.kc-cur', w.body), out = $('.kc-out', w.body), kc = $('.kc', w.body);
+  let expr = '';
+  function show(){ cur.textContent = expr || '0'; }
+  function press(k){
+    if(k === 'C'){ expr = ''; out.textContent = ''; show(); return; }
+    if(k === '⌫'){ expr = expr.slice(0, -1); show(); return; }
+    if(k === '='){
+      const js = expr.replace(/÷/g, '/').replace(/×/g, '*').replace(/−/g, '-');
+      if(!js || !/^[0-9+\-*/(). %]+$/.test(js)){ out.textContent = 'ERR'; return; }
+      try{
+        const v = Function('"use strict";return (' + js + ')')();
+        if(typeof v !== 'number' || !isFinite(v)){ out.textContent = '∞'; return; }
+        out.textContent = expr + ' =';
+        expr = String(Math.round(v * 1e10) / 1e10);
+        show();
+      }catch(e){ out.textContent = 'ERR'; }
+      return;
+    }
+    if(expr.length > 40) return;
+    expr += k;
+    show();
+  }
+  $$('.kc-b', w.body).forEach(b => b.onclick = () => { press(b.dataset.k); kc.focus(); });
+  kc.addEventListener('keydown', e => {
+    const map = { '/':'÷', '*':'×', '-':'−', 'Enter':'=', '=':'=', 'Backspace':'⌫', 'Escape':'C', 'Delete':'C' };
+    const k = map[e.key] || ('0123456789.+()'.includes(e.key) ? e.key : null);
+    if(k){ e.preventDefault(); press(k); }
+  });
+  setTimeout(() => kc.focus(), 50);
+}
+
+/* ---------- SETTINGS ---------- */
+let settingsRefresh = null;
+function refreshSettings(){ if(settingsRefresh) settingsRefresh(); }
+function launchSettings(w, arg){
+  const st = { pane: (arg && arg.pane) || 'appearance' };
+  w.body.innerHTML =
+    '<div class="st">' +
+      '<div class="st-nav">' +
+        '<button class="st-ni" data-p="appearance">Appearance</button>' +
+        '<button class="st-ni" data-p="account">Account</button>' +
+        '<button class="st-ni" data-p="system">System</button>' +
+      '</div>' +
+      '<div class="st-main scroll"></div>' +
+    '</div>';
+  const main = $('.st-main', w.body);
+
+  function seg(opts, curVal, fn){
+    const s = el('<div class="seg">' + opts.map(o =>
+      '<button data-v="' + o[0] + '" class="' + (o[0] === curVal ? 'on' : '') + '">' + o[1] + '</button>').join('') + '</div>');
+    $$('button', s).forEach(b => b.onclick = () => { fn(b.dataset.v); render(); });
+    return s;
+  }
+  function sec(title){
+    const d = el('<div class="st-sec"><h3 class="st-t">' + title + '</h3></div>');
+    main.appendChild(d);
+    return d;
+  }
+  function render(){
+    $$('.st-ni', w.body).forEach(b => b.classList.toggle('on', b.dataset.p === st.pane));
+    main.innerHTML = '';
+    if(st.pane === 'appearance'){
+      sec('Theme').appendChild(seg([['dark','Dark'],['light','Light']], settings.theme, v => { settings.theme = v; saveSettings(); applySettings(); }));
+      sec('Corners').appendChild(seg([['cubic','Cubic'],['soft','Soft']], settings.corners, v => { settings.corners = v; saveSettings(); applySettings(); }));
+      sec('Motion').appendChild(seg([['on','On'],['off','Reduced']], settings.motion, v => { settings.motion = v; saveSettings(); applySettings(); }));
+      const ac = sec('Accent');
+      const sw = el('<div class="swatches"></div>');
+      ACCENTS.forEach(c => {
+        const b = el('<button class="swatch' + (c === settings.accent ? ' on' : '') + '" style="background:' + c + '" title="' + c + '"></button>');
+        b.onclick = () => { settings.accent = c; saveSettings(); applySettings(); render(); };
+        sw.appendChild(b);
+      });
+      ac.appendChild(sw);
+      const wl = sec('Wallpaper');
+      const ws = el('<div class="walls"></div>');
+      Object.keys(WALLS).forEach(k => {
+        const b = el('<button class="wall' + (k === settings.wall ? ' on' : '') + '" aria-label="' + WALL_NAMES[k] + '" style=\'background-image:url("' + WALLS[k]() + '")\'><span>' + WALL_NAMES[k] + '</span></button>');
+        b.onclick = () => { settings.wall = k; saveSettings(); applySettings(); render(); };
+        ws.appendChild(b);
+      });
+      wl.appendChild(ws);
+    }
+    if(st.pane === 'account'){
+      const nm = sec('Display name');
+      const f = el('<div class="st-field"><input class="st-in" maxlength="24" value="' + esc(user.name) + '"><button class="btn-line">Save</button></div>');
+      $('button', f).onclick = () => {
+        const v = $('input', f).value.trim();
+        if(!v) return;
+        user.name = v;
+        store.set('kos.user', user);
+        renderStartMenu();
+        note('saved');
+      };
+      nm.appendChild(f);
+      const noteEl = el('<div class="st-note"></div>');
+      nm.appendChild(noteEl);
+      function note(t){ noteEl.textContent = t; setTimeout(() => noteEl.textContent = '', 1800); }
+      sec('Identity').insertAdjacentHTML('beforeend',
+        '<div class="about-row"><span class="k">home</span><span class="v">/home/user</span></div>' +
+        '<div class="about-row"><span class="k">since</span><span class="v">' + new Date(user.created || Date.now()).toLocaleDateString() + '</span></div>' +
+        '<div class="st-note">The account is local to this headset. KONEKT itself signs in separately, inside its own app.</div>');
+    }
+    if(st.pane === 'system'){
+      const mins = Math.floor((Date.now() - BOOT_T) / 60000);
+      sec('About this headset').insertAdjacentHTML('beforeend',
+        '<div class="about-row"><span class="k">device</span><span class="v">KONEKT.WORLD headset rev C</span></div>' +
+        '<div class="about-row"><span class="k">os</span><span class="v">KonektOS 1.4.2 (build 2618)</span></div>' +
+        '<div class="about-row"><span class="k">kernel</span><span class="v">swallow 6.1.0-nko</span></div>' +
+        '<div class="about-row"><span class="k">uptime</span><span class="v">' + (mins < 1 ? 'under a minute' : mins + ' min') + '</span></div>' +
+        '<div class="about-row"><span class="k">local files</span><span class="v">' + Math.max(1, Math.round(fsSizeOf(FS) / 102.4) / 10) + ' KB</span></div>' +
+        '<div class="about-row"><span class="k">foundation</span><span class="v">NKO Intl. Foundation of Technological Research &amp; Development</span></div>');
+      const pw = sec('Power');
+      const rowP = el('<div class="st-field"></div>');
+      const rb = el('<button class="btn-line">Reboot</button>');
+      rb.onclick = () => { closeAllWindows(); boot(); };
+      const sd = el('<button class="btn-line">Shut down</button>');
+      sd.onclick = () => shutdown();
+      rowP.appendChild(rb); rowP.appendChild(sd);
+      pw.appendChild(rowP);
+      const dz = sec('Danger');
+      const er = el('<button class="btn-line danger">Erase this device</button>');
+      let armed = false;
+      er.onclick = () => {
+        if(!armed){ armed = true; er.textContent = 'Click again — every file goes'; return; }
+        factoryReset();
+      };
+      dz.appendChild(er);
+      dz.insertAdjacentHTML('beforeend', '<div class="st-note">Erasing removes the account, the files and the settings from this browser. There is no cloud copy; that is the point.</div>');
+    }
+  }
+  $$('.st-ni', w.body).forEach(b => b.onclick = () => { st.pane = b.dataset.p; render(); });
+  w.onArg = a => { if(a && a.pane){ st.pane = a.pane; render(); } };
+  settingsRefresh = render;
+  w.onClose = () => { if(settingsRefresh === render) settingsRefresh = null; };
+  render();
+}
+
+/* ---------------------------- desktop assembly ---------------------------- */
+function buildDesktop(){
+  deskBuilt = true;
+  $('#stBtn').innerHTML = globe(22, 6);
+  $('#stBtn').onclick = e => { e.stopPropagation(); toggleStart(); };
+  $('#desk').addEventListener('click', () => {
+    toggleStart(false);
+    $$('.dico').forEach(x => x.classList.remove('sel'));
+  });
+  $('#desk').addEventListener('contextmenu', e => {
+    if(e.target.closest('.win') || e.target.closest('.dico')) return;
+    e.preventDefault();
+    showCMenu(e.clientX, e.clientY, [
+      { t:'New text file', icon:IC.plus, fn(){
+        const desk = HOME.concat('Desktop');
+        let n = 'new-file.txt', i = 2;
+        while(fsGet(desk.concat(n))){ n = 'new-file-' + i + '.txt'; i++; }
+        fsMk(desk.concat(n), ffile(''));
+        renderIcons(); refreshFiles(); refreshNotesList();
+      }},
+      { t:'Open terminal', icon:IC.term, fn: () => openApp('term') },
+      '-',
+      { t:'Change wallpaper', icon:IC.set, fn: () => openApp('set', { pane:'appearance' }) },
+      { t:'About this headset', icon:IC.globe, fn: () => openApp('set', { pane:'system' }) }
+    ]);
+  });
+  document.addEventListener('click', e => {
+    if(!e.target.closest('#cmenu')) hideCMenu();
+    if(!e.target.closest('#smenu') && !e.target.closest('#stBtn')) toggleStart(false);
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){ toggleStart(false); hideCMenu(); }
+  });
+  addEventListener('online', uplinkSync);
+  addEventListener('offline', uplinkSync);
+  addEventListener('resize', () => {
+    /* keep windows reachable when the desk shrinks */
+    const desk = $('#desk');
+    wm.wins.forEach(w => {
+      if(w.maxed) return;
+      if(w.el.offsetLeft > desk.clientWidth - 60) w.el.style.left = Math.max(0, desk.clientWidth - w.el.offsetWidth) + 'px';
+      if(w.el.offsetTop > desk.clientHeight - 30) w.el.style.top = Math.max(0, desk.clientHeight - w.el.offsetHeight) + 'px';
+    });
+  });
+  uplinkSync();
+  tbSync();
+}
+
+/* ---------------------------- init ---------------------------- */
+fsLoad();
+applySettings();
+setInterval(clockTick, 1000);
+clockTick();
+boot();
+</script>
+</body>
+</html>
