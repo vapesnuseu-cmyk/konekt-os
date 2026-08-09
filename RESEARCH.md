@@ -137,8 +137,9 @@ The one thing neither Windows nor any registry OS does out of the box, and the r
 to build the product at all:
 
 - **One-click wizard**: CryptoPro CSP 5.0 (Linux builds exist, incl. ARM) + Gosuslugi
-  IFC plugin + GOST TLS browser (Yandex Browser for Linux or Chromium-Gost) +
-  e-signature tooling. RED OS and Astra document the manual 40-step version; KONEKT
+  IFC plugin + a GOST TLS browser + e-signature tooling. **The default browser is
+  KONEKT BROWSER** (see §5a); Chromium-Gost and Yandex Browser stay packaged in the
+  store as alternatives, since qualified-signature portals are certified against them. RED OS and Astra document the manual 40-step version; KONEKT
   ships the one-click version. **Caveat found in review: CryptoPro is a paid product
   (90-day trial) — the wizard requires an OEM licensing deal with CryptoPro. That
   deal IS the feature; negotiate it early.**
@@ -151,6 +152,61 @@ to build the product at all:
   proprietary translation layers; web versions are strong).
 - **Legacy business Windows apps** (Consultant+, SBIS, Kontur with CryptoPro inside
   Wine): the WINE@Etersoft precedent proves the recipes work — license or replicate.
+
+## 5a. The preinstalled browser: KONEKT BROWSER
+
+The browser is the single most-used application on any desktop, so it is not left to
+chance or to a third party — **KONEKT BROWSER ships preinstalled and set as default.**
+It already exists as a sibling product (Electron/Chromium on desktop, a system-WebView
+native app on Android), which means the OS inherits a finished, maintained browser
+rather than funding a new one.
+
+Why this is the right call and not merely convenient:
+
+- **The engine question is settled.** Chromium means sites render exactly as in Chrome,
+  including the bank cabinets and Gosuslugi flows that Russian users depend on. Writing
+  a browser engine is the one project even more expensive than writing a kernel —
+  Ladybird needs a funded non-profit and ~7 full-time engineers to reach an alpha.
+- **It is the GOST attachment point.** CryptoPro CSP plus the Gosuslugi IFCPlugin hang
+  off a Chromium browser through native messaging; shipping our own means the one-click
+  wizard configures a browser we control, instead of hoping a third party's build
+  cooperates. Chromium-Gost and Yandex Browser remain in the store for the portals that
+  certify against them specifically.
+- **One appearance system, two products.** The browser's own settings — five colour
+  schemes (Dark, Light, System, Liquid Glass, Custom with derived greys), seven accents
+  plus a colour wheel, text size, 0–24px corner rounding, uppercase/motion/avatar
+  toggles, wallpapers, density, reset — are **the same controls the OS exposes**. A user
+  changes the accent once and the system and the browser agree. This is exactly the HIG
+  consistency that makes macOS feel premium, and it costs nothing extra because the
+  design system already exists.
+- **It carries the account and sync.** Bookmarks, Speed Dial, history and settings sync
+  between desktop and phone on KONEKT's own backend — the OS gets a continuity story on
+  day one without building one.
+- **Ad blocking on by default** is a consumer-visible reason to prefer the machine,
+  which matters when the competitor is a pirated Windows install.
+
+The honest boundary: preinstalled is not locked in. Yandex Browser, Chromium and Firefox
+install from the store in one tap and any can be made default — the moment a default
+browser cannot be changed, the OS stops being the kind of product this project exists
+to build.
+
+## 5b. Updates: checked at every start, applied only on consent
+
+Update mechanics decide whether people trust an OS, and Windows lost that trust by
+seizing machines mid-work. KONEKT OS inverts it:
+
+- **Check on every launch**, desktop and mobile alike, against a signed version manifest.
+- **Ask, never assume.** The dialog shows the version pair and the actual list of
+  changes, and offers exactly two answers: now, or later. Nothing installs silently.
+- **Atomic application**: the image is written to the free slot and switched on whole;
+  a build that will not boot is undone by a reboot (§2). Users are told this in the
+  dialog, because "you cannot break it" is the reason to say yes.
+- **No nag loops**: if an attempted update does not take effect, the system says so once
+  instead of asking again forever — a small detail that separates software that respects
+  attention from software that harvests it.
+- The concept shell implements this end to end (manifest fetch, comparison, consent
+  dialog, staged install, reboot, stuck-update guard) so the interaction is testable
+  before the OS exists.
 
 ## 6. Windows compatibility: per-app verified, never binary-compatible
 

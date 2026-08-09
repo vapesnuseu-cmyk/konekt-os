@@ -32,7 +32,12 @@
   --mono:'Cascadia Mono','Consolas',ui-monospace,'Menlo',monospace;
   --strip:34px;        /* window titlebar */
   --bar:44px;          /* taskbar */
-  --radius:0px;        /* cubic by default; Settings can soften it */
+  --radius:0px;        /* cubic by default; Settings can soften it, 0–24px */
+  --av-radius:0px;     /* avatars follow --radius unless "round avatar" is on */
+  --fs:14px;           /* base type size — Settings: text size S/M/L */
+  --glass-blur:26px;
+  --glass-bg:rgba(20,20,26,.55);
+  --glass-brd:rgba(255,255,255,.10);
   color-scheme:dark;
 }
 :root[data-theme="light"]{
@@ -47,8 +52,46 @@
   --btn-h:#2b2b2b;
   --dim:#5c5c5c;
   --dim-2:#8a8a8a;
+  --glass-bg:rgba(250,250,252,.6);
+  --glass-brd:rgba(0,0,0,.08);
   color-scheme:light;
 }
+/* ---- the KONEKT BROWSER appearance set, carried into the OS ---- */
+:root[data-fs="s"]{--fs:13px}
+:root[data-fs="l"]{--fs:15.5px}
+:root[data-density="compact"]{--strip:28px;--bar:38px}
+:root[data-density="compact"] .sm-i{padding:7px 16px}
+:root[data-density="compact"] .st-ni{padding:8px 18px}
+:root[data-density="compact"] .st-main{padding:16px 20px}
+:root[data-density="compact"] .fx-grid{padding:6px;gap:1px}
+:root[data-density="compact"] .fi{padding:8px 6px 6px}
+:root[data-density="compact"] .nx-it{padding:6px 14px}
+:root[data-density="compact"] .q>button,:root[data-density="compact"] .kb-dial{padding:12px 14px}
+:root[data-caps="off"] .win-t,:root[data-caps="off"] .task .t,:root[data-caps="off"] .sm-i span,
+:root[data-caps="off"] .sm-n,:root[data-caps="off"] .sm-p span,:root[data-caps="off"] .dico .t,
+:root[data-caps="off"] .st-ni,:root[data-caps="off"] .st-t,:root[data-caps="off"] .about-row .k,
+:root[data-caps="off"] .btn-line,:root[data-caps="off"] .btn-solid,:root[data-caps="off"] .seg button,
+:root[data-caps="off"] .fx-crumb,:root[data-caps="off"] .nx-head,:root[data-caps="off"] .fx-status,
+:root[data-caps="off"] .nx-status,:root[data-caps="off"] .lock-name,:root[data-caps="off"] #cmenu button,
+:root[data-caps="off"] .kb-dial .t,:root[data-caps="off"] .kb-sd h3,:root[data-caps="off"] #trUp span,
+:root[data-caps="off"] #trClock .d,:root[data-caps="off"] .lock-in::placeholder{text-transform:none}
+/* Liquid Glass — frosted chrome floating over the wallpaper. App content stays opaque. */
+:root[data-appearance="glass"] .win,
+:root[data-appearance="glass"] #taskbar,
+:root[data-appearance="glass"] #smenu,
+:root[data-appearance="glass"] #cmenu{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  border-color:var(--glass-brd);
+}
+:root[data-appearance="glass"] .win.focus{border-color:var(--line-2)}
+:root[data-appearance="glass"] .win-body{background:transparent}
+:root[data-appearance="glass"] .term,
+:root[data-appearance="glass"] .kc-b,
+:root[data-appearance="glass"] .kb-view{background:transparent}
+:root[data-appearance="glass"] .kn,
+:root[data-appearance="glass"] .kb-page{background:#000}
 :root[data-motion="off"] *,
 :root[data-motion="off"] *::before,
 :root[data-motion="off"] *::after{
@@ -60,7 +103,7 @@ html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
 body{
   margin:0;background:var(--bg);color:var(--text);
-  font-family:var(--font);font-size:14px;font-weight:400;line-height:1.4;
+  font-family:var(--font);font-size:var(--fs);font-weight:400;line-height:1.4;
   -webkit-font-smoothing:antialiased;overflow:hidden;
 }
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:0;text-align:left;padding:0}
@@ -114,7 +157,7 @@ body[data-phase="os"]   #os{display:flex}
 .lock-av{
   width:64px;height:64px;background:var(--text);color:var(--bg);
   display:flex;align-items:center;justify-content:center;
-  font-size:28px;font-weight:800;border-radius:var(--radius);
+  font-size:28px;font-weight:800;border-radius:var(--av-radius);
 }
 .lock-name{font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .lock-in{
@@ -206,7 +249,7 @@ body[data-phase="os"]   #os{display:flex}
 .sm-av{
   width:38px;height:38px;background:var(--text);color:var(--bg);flex:none;
   display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;
-  border-radius:var(--radius);
+  border-radius:var(--av-radius);
 }
 .sm-n{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .sm-d{font-size:10px;color:var(--dim);letter-spacing:.06em}
@@ -439,6 +482,144 @@ body[data-phase="os"]   #os{display:flex}
 .about-row .k{color:var(--dim);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding-top:2px}
 .about-row .v{text-align:right;overflow-wrap:anywhere}
 .st-note{font-size:11px;color:var(--dim);line-height:1.6;margin-top:10px}
+/* custom-scheme colour rows, the rounding slider and the toggle rows */
+.col-row,.rng-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:9px 0;border-bottom:1px solid var(--line-3);
+}
+.col-l{font-size:12.5px}
+.col-r{display:flex;align-items:center;gap:10px}
+.col-r b{font-family:var(--mono);font-size:10.5px;color:var(--dim);font-weight:400;min-width:62px;text-align:right}
+input[type="color"]{
+  width:30px;height:24px;padding:0;border:1px solid var(--line-2);background:none;cursor:pointer;
+  border-radius:var(--radius);
+}
+input[type="color"]::-webkit-color-swatch-wrapper{padding:2px}
+input[type="color"]::-webkit-color-swatch{border:0;border-radius:0}
+input[type="range"]{
+  -webkit-appearance:none;appearance:none;width:150px;height:1px;background:var(--line-2);cursor:pointer;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:13px;height:13px;background:var(--text);border-radius:var(--radius);
+}
+input[type="range"]::-moz-range-thumb{width:13px;height:13px;background:var(--text);border:0;border-radius:var(--radius)}
+.tog-row{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:10px 0;border-bottom:1px solid var(--line-3);font-size:12.5px;
+}
+.tog-row:hover{color:var(--text)}
+.tog-v{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim-2)}
+.tog-v.on{color:var(--text)}
+.sw-wheel{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;
+  background:conic-gradient(#f4212e,#ffd400,#00ba7c,#1d9bf0,#a970ff,#f91880,#f4212e)}
+.sw-wheel input[type="color"]{opacity:0;width:100%;height:100%;border:0;cursor:pointer}
+
+/* ============================= APP: KONEKT BROWSER ============================= */
+.kb{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.kb-tabs{height:30px;flex:none;display:flex;align-items:stretch;border-bottom:1px solid var(--line-3);overflow:hidden}
+.kb-tab{
+  display:flex;align-items:center;gap:8px;padding:0 10px;max-width:190px;min-width:74px;
+  border-right:1px solid var(--line-3);color:var(--dim);font-size:10.5px;letter-spacing:.04em;
+}
+.kb-tab .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.kb-tab .x{font-family:var(--mono);font-size:11px;color:var(--dim-2);flex:none}
+.kb-tab .x:hover{color:var(--danger)}
+.kb-tab:hover{background:var(--hover)}
+.kb-tab.on{color:var(--text);background:var(--hover-2);box-shadow:inset 0 -2px 0 var(--accent)}
+.kb-newtab{width:30px;display:flex;align-items:center;justify-content:center;color:var(--dim)}
+.kb-newtab:hover{background:var(--hover-2);color:var(--text)}
+.kb-newtab svg{width:12px;height:12px}
+.kb-bar{height:36px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;border-bottom:1px solid var(--line-3)}
+.kb-b{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--dim);flex:none;border-radius:var(--radius)}
+.kb-b:hover{background:var(--hover-2);color:var(--text)}
+.kb-b:disabled{color:var(--line);cursor:default;background:none}
+.kb-b svg{width:13px;height:13px}
+.kb-omni{
+  flex:1;display:flex;align-items:center;gap:8px;min-width:0;height:26px;padding:0 10px;
+  border:1px solid var(--line-2);margin:0 6px;border-radius:var(--radius);
+}
+.kb-omni:focus-within{border-color:var(--accent)}
+.kb-omni .lock{font-size:9px;letter-spacing:.1em;color:var(--repost);flex:none}
+.kb-omni .lock.no{color:var(--warn)}
+.kb-omni input{flex:1;min-width:0;font-size:11.5px;letter-spacing:.02em}
+.kb-view{flex:1;min-height:0;position:relative;display:flex;background:var(--bg)}
+.kb-view iframe{flex:1;border:0;width:100%;height:100%;background:#fff}
+.kb-sd{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:38px 24px}
+.kb-sd .mk{margin-bottom:10px}
+.kb-sd .cl{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim-2);margin-bottom:26px}
+.kb-sd h3{font-size:9.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim-2);margin:0 0 12px;align-self:flex-start}
+.kb-dials{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;width:100%;max-width:540px}
+.kb-dial{
+  border:1px solid var(--line-3);padding:16px 12px;display:flex;flex-direction:column;gap:8px;
+  align-items:center;text-align:center;border-radius:var(--radius);color:var(--text);
+}
+.kb-dial:hover{background:var(--hover);border-color:var(--line-2)}
+.kb-dial .fav{width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.kb-dial .t{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.kb-dial .h{font-size:9px;color:var(--dim-2);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.kb-page{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:30px;text-align:center;background:var(--bg);
+}
+.kb-page .t{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.kb-page .d{font-size:12px;color:var(--dim);line-height:1.7;max-width:420px}
+.kb-note{
+  height:24px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 12px;
+  border-top:1px solid var(--line-3);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim-2);
+}
+.kb-note a{color:var(--dim)}
+.kb-note a:hover{color:var(--text)}
+
+/* ============================= SOFTWARE UPDATE ============================= */
+#kmodal{
+  position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(0,0,0,.72);
+}
+#kmodal.on{display:flex}
+:root[data-theme="light"] #kmodal{background:rgba(0,0,0,.42)}
+.km-card{
+  width:min(440px,100%);max-height:86vh;overflow-y:auto;background:var(--bg);
+  border:1px solid var(--line-2);border-radius:var(--radius);
+  box-shadow:0 24px 70px rgba(0,0,0,.6);
+}
+:root[data-appearance="glass"] .km-card{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+}
+.km-head{display:flex;align-items:center;gap:14px;padding:22px 24px 0}
+.km-head .g{color:var(--text);flex:none}
+.km-t{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.km-v{font-size:10px;letter-spacing:.12em;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+.km-body{padding:18px 24px 4px}
+.km-body p{margin:0 0 12px;font-size:13px;color:var(--dim);line-height:1.7}
+.km-notes{list-style:none;margin:0;padding:0}
+.km-notes li{
+  font-size:12.5px;color:var(--text-2);line-height:1.6;padding:7px 0 7px 16px;position:relative;
+  border-bottom:1px solid var(--line-3);
+}
+.km-notes li::before{content:'';position:absolute;left:0;top:14px;width:5px;height:5px;background:var(--accent)}
+.km-notes li:last-child{border-bottom:0}
+.km-fine{font-size:10.5px;color:var(--dim-2);line-height:1.6;padding:12px 24px 0}
+.km-prog{padding:16px 24px 0;display:none}
+.km-prog.on{display:block}
+.km-bar{height:2px;background:var(--line-3);overflow:hidden}
+.km-bar i{display:block;height:100%;width:0;background:var(--text);transition:width .45s ease}
+.km-step{margin-top:10px;font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.04em}
+.km-foot{display:flex;gap:10px;justify-content:flex-end;padding:20px 24px 22px;flex-wrap:wrap}
+.km-foot .btn-line,.km-foot .btn-solid{padding:11px 20px}
+#ktoast{
+  position:fixed;left:50%;bottom:calc(var(--bar) + 16px);transform:translateX(-50%);z-index:220;
+  background:var(--text);color:var(--bg);padding:11px 20px;border-radius:var(--radius);
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  display:none;max-width:calc(100vw - 32px);text-align:center;
+}
+#ktoast.on{display:block}
+@media (max-width:600px){
+  /* thumb-first, like the browser's Android bar: the action you want sits lowest */
+  .km-foot{flex-direction:column}
+  .km-foot .btn-line,.km-foot .btn-solid{width:100%}
+}
 
 /* ============================= APP: KONEKT ============================= */
 .kn{flex:1;display:flex;position:relative;background:#000}
@@ -499,6 +680,8 @@ body[data-phase="os"]   #os{display:flex}
 </div>
 
 <div id="cmenu"></div>
+<div id="ktoast" role="status"></div>
+<div id="kmodal" role="dialog" aria-modal="true" aria-label="Обновление системы"></div>
 
 <script>
 'use strict';
@@ -572,6 +755,12 @@ const IC = {
   trash:   ic('<path d="M4.5 6.5h15"/><path d="M8 6.5V4h8v2.5"/><path d="M6.5 6.5l1 14h9l1-14"/>'),
   pencil:  ic('<path d="M4 20l1-4L16.5 4.5l3 3L8 19z"/>'),
   back:    ic('<path d="M15 4.5L7.5 12l7.5 7.5"/>'),
+  fwd:     ic('<path d="M9 4.5l7.5 7.5L9 19.5"/>'),
+  reload:  ic('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 3.5V8H15"/>'),
+  home:    ic('<path d="M4 10.5L12 4l8 6.5V20H4z"/><path d="M9.5 20v-6h5v6"/>'),
+  star:    ic('<path d="M12 4l2.5 5.4 5.5.7-4 3.9 1 5.6-5-2.8-5 2.8 1-5.6-4-3.9 5.5-.7z"/>'),
+  ext:     ic('<path d="M13 4.5h6.5V11"/><path d="M19.5 4.5L11 13"/><path d="M17 14v5.5H4.5V7H10"/>'),
+  browser: ic('<rect x="3" y="4.5" width="18" height="15"/><path d="M3 9h18"/><circle cx="6.2" cy="6.75" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="6.75" r=".9" fill="currentColor" stroke="none"/>'),
   up:      ic('<path d="M12 19V5.5M5.5 11.5L12 5l6.5 6.5"/>'),
   min:     '<svg viewBox="0 0 11 11" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1 5.5h9"/></svg>',
   max:     '<svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.2" y="1.2" width="8.6" height="8.6"/></svg>',
@@ -579,12 +768,64 @@ const IC = {
   cls:     '<svg viewBox="0 0 11 11" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1.5 1.5l8 8M9.5 1.5l-8 8"/></svg>'
 };
 
-/* ---------------------------- settings ---------------------------- */
-const DEFAULTS = { theme:'dark', accent:'#1d9bf0', wall:'void', motion:'on', corners:'cubic' };
-let settings = Object.assign({}, DEFAULTS, store.get('kos.settings', {}));
+/* ---------------------------- settings ----------------------------
+   The appearance model is KONEKT BROWSER's, carried over whole: five colour
+   schemes (the last one derives its greys from your own three colours), seven
+   accents plus a wheel, type size, corner rounding, the three toggles,
+   wallpapers and layout density. One system, two products. */
+const DEFAULTS = {
+  mode:'dark',        /* dark | light | system | glass | custom */
+  bgCol:'', lineCol:'', textCol:'',
+  accent:'#1d9bf0',
+  fs:'m',             /* s | m | l */
+  radius:0,           /* 0–24px, cubic by default */
+  avRound:false,
+  caps:true,
+  motion:true,
+  wall:'void',
+  density:'cozy'      /* cozy | compact */
+};
+function migrateSettings(s){
+  /* 1.4 shipped theme/corners/motion-as-string; keep those installs intact */
+  if(s && s.mode === undefined){
+    if(s.theme) s.mode = s.theme === 'light' ? 'light' : 'dark';
+    if(s.corners) s.radius = s.corners === 'soft' ? 10 : 0;
+    if(typeof s.motion === 'string') s.motion = s.motion !== 'off';
+    delete s.theme; delete s.corners;
+  }
+  return s || {};
+}
+let settings = Object.assign({}, DEFAULTS, migrateSettings(store.get('kos.settings', {})));
 function saveSettings(){ store.set('kos.settings', settings); }
 
-const ACCENTS = ['#1d9bf0', '#f91880', '#00ba7c', '#ffd400', '#ff6b1a', '#a78bfa'];
+const ACCENTS = ['#1d9bf0', '#00ba7c', '#f91880', '#ffd400', '#a970ff', '#ff6a00', '#ffffff'];
+
+/* colour maths — the same derivation the browser uses for custom schemes */
+function hexN(h){
+  h = String(h || '').replace('#', '');
+  if(h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  return (h.length === 6 && !isNaN(n)) ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : null;
+}
+function luma(h){
+  const c = hexN(h);
+  return c ? (.2126 * c[0] + .7152 * c[1] + .0722 * c[2]) / 255 : .5;
+}
+function mixHex(a, b, t){
+  const A = hexN(a), B = hexN(b);
+  if(!A || !B) return a;
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+function contrast(a, b){
+  const L = x => { const c = hexN(x); if(!c) return 0;
+    const s = c.map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    return .2126 * s[0] + .7152 * s[1] + .0722 * s[2]; };
+  const l1 = L(a), l2 = L(b);
+  return (Math.max(l1, l2) + .05) / (Math.min(l1, l2) + .05);
+}
+function prefersLight(){
+  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches;
+}
 
 function svgURI(w, h, inner){
   return 'data:image/svg+xml,' + encodeURIComponent(
@@ -647,16 +888,77 @@ const WALLS = {
       '<circle cx="480" cy="270" r="5" fill="#fff"/>');
   }
 };
-const WALL_NAMES = { void:'VOID', nebula:'NEBULA', grid:'HORIZON', orbit:'ORBIT' };
+/* the six KONEKT BROWSER wallpapers, verbatim — gradients, nothing fetched */
+const GRADIENTS = {
+  none:   '',
+  aurora: 'radial-gradient(120% 120% at 20% 0%, #10233b 0%, #0a0a12 45%, #000 100%), radial-gradient(90% 90% at 100% 100%, #241033 0%, transparent 60%)',
+  ember:  'radial-gradient(120% 120% at 0% 0%, #2a0f0f 0%, #0a0708 45%, #000 100%), radial-gradient(90% 90% at 100% 30%, #3a1d05 0%, transparent 60%)',
+  mono:   'radial-gradient(120% 120% at 50% 0%, #1a1a1a 0%, #0a0a0a 50%, #000 100%)',
+  teal:   'radial-gradient(120% 120% at 15% 10%, #06272b 0%, #06131a 45%, #000 100%), radial-gradient(80% 80% at 100% 100%, #0b3a2e 0%, transparent 60%)',
+  violet: 'radial-gradient(120% 120% at 80% 0%, #1a1040 0%, #0a0816 45%, #000 100%), radial-gradient(90% 90% at 0% 100%, #3a0f36 0%, transparent 60%)'
+};
+const WALL_NAMES = {
+  void:'VOID', nebula:'NEBULA', grid:'HORIZON', orbit:'ORBIT',
+  none:'NONE', aurora:'AURORA', ember:'EMBER', mono:'MONO', teal:'TEAL', violet:'VIOLET'
+};
+function wallKeys(){ return Object.keys(WALLS).concat(Object.keys(GRADIENTS)); }
+function wallCSS(k){
+  if(WALLS[k]) return 'url("' + WALLS[k]() + '")';
+  if(GRADIENTS[k] !== undefined) return GRADIENTS[k];
+  return 'url("' + WALLS.void() + '")';
+}
 
 function applySettings(){
-  const root = document.documentElement;
-  root.dataset.theme = settings.theme === 'light' ? 'light' : 'dark';
-  root.dataset.motion = settings.motion === 'off' ? 'off' : 'on';
-  root.style.setProperty('--accent', settings.accent);
-  root.style.setProperty('--radius', settings.corners === 'soft' ? '10px' : '0px');
+  const r = document.documentElement, S = r.style;
+  const mode = settings.mode || 'dark';
+  ['--bg', '--hover', '--hover-2', '--line', '--line-2', '--line-3', '--text'].forEach(k => S.removeProperty(k));
+
+  let base;                                     /* which built-in palette the greys follow */
+  if(mode === 'custom'){
+    const bgc = settings.bgCol;
+    const ink = settings.textCol || (bgc && luma(bgc) > .5 ? '#000000' : '#ffffff');
+    base = bgc ? (luma(bgc) > .5 ? 'light' : 'dark') : (prefersLight() ? 'light' : 'dark');
+    if(bgc){
+      S.setProperty('--bg', bgc);
+      S.setProperty('--hover', mixHex(bgc, ink, .06));
+      S.setProperty('--hover-2', mixHex(bgc, ink, .12));
+    }
+    if(settings.lineCol){
+      S.setProperty('--line', settings.lineCol);
+      S.setProperty('--line-2', mixHex(settings.lineCol, ink, .35));
+      S.setProperty('--line-3', mixHex(settings.lineCol, bgc || (base === 'light' ? '#ffffff' : '#000000'), .55));
+    }
+    if(settings.textCol) S.setProperty('--text', settings.textCol);
+  } else if(mode === 'system'){
+    base = prefersLight() ? 'light' : 'dark';
+  } else {
+    base = mode === 'light' ? 'light' : 'dark';  /* dark and glass share the dark palette */
+  }
+  r.dataset.theme = base;
+  r.dataset.appearance = mode;
+  r.dataset.fs = settings.fs || 'm';
+  r.dataset.density = settings.density || 'cozy';
+  r.dataset.caps = settings.caps === false ? 'off' : 'on';
+  r.dataset.motion = settings.motion === false ? 'off' : 'on';
+  S.setProperty('--accent', settings.accent || '#1d9bf0');
+
+  const rad = Math.max(0, Math.min(24, parseInt(settings.radius, 10) || 0));
+  S.setProperty('--radius', rad + 'px');
+  S.setProperty('--av-radius', settings.avRound ? '50%' : rad + 'px');
+
   const desk = $('#desk');
-  if(desk) desk.style.backgroundImage = 'url("' + (WALLS[settings.wall] || WALLS.void)() + '")';
+  if(desk){
+    let w = wallCSS(settings.wall);
+    if(!w && mode === 'glass') w = GRADIENTS.aurora;   /* glass needs something to frost */
+    desk.style.backgroundImage = w || 'none';
+  }
+}
+/* follow the system when the scheme is System (or a Custom one with no background set) */
+if(typeof matchMedia === 'function'){
+  const mq = matchMedia('(prefers-color-scheme: light)');
+  const onScheme = () => { if(settings.mode === 'system' || settings.mode === 'custom') applySettings(); };
+  if(mq.addEventListener) mq.addEventListener('change', onScheme);
+  else if(mq.addListener) mq.addListener(onScheme);
 }
 
 /* ---------------------------- virtual filesystem ----------------------------
@@ -669,7 +971,7 @@ function fdir(children){ return { type:'dir', children: children || {}, mtime: f
 function ffile(content){ return { type:'file', content: content || '', mtime: fsNow() }; }
 
 const README_TXT = [
-'KONEKT OS 1.4',
+'KONEKT OS 1.5',
 '=============',
 '',
 'Welcome to your KONEKT.WORLD headset.',
@@ -678,10 +980,11 @@ const README_TXT = [
 'NKO Intl. Foundation of Technological Research & Development.',
 '',
 'Where to start',
+'  BROWSER    KONEKT BROWSER — preinstalled, the default browser',
 '  KONEKT     the network: posts, messages, market, music',
 '  FILES      everything on this headset, stored locally',
 '  TERMINAL   type "help". Then type "neofetch".',
-'  SETTINGS   wallpaper, accent, light theme, corners',
+'  SETTINGS   five colour schemes, seven accents, ten wallpapers',
 '',
 'Everything you see lives on the device. The only network the',
 'OS touches is the KONEKT app itself, and only when you open it.',
@@ -715,7 +1018,7 @@ function seedFS(){
       })
     }),
     sys: fdir({
-      'version': ffile('KonektOS 1.4.2 (build 2618)\nKONEKT.WORLD headset rev C\nswallow kernel 6.1.0-nko'),
+      'version': ffile('KonektOS 1.5.0 (build 2701)\nKONEKT.WORLD headset rev C\nswallow kernel 6.1.0-nko\ndefault browser: KONEKT BROWSER\nupdate channel: stable — checked at every start'),
       'lastochka': ffile('LASTOCHKA neural core: uplink not provisioned on this build.\nThe full assistant lives in the KONEKT app.')
     })
   });
@@ -801,6 +1104,127 @@ function fsSizeOf(node){
   return Object.values(node.children).reduce((a, c) => a + fsSizeOf(c), 0);
 }
 
+/* ---------------------------- software update ----------------------------
+   Checked once at every start — and from Settings or `update` in the shell.
+   version.json is fetched fresh, compared, and the answer is yours: the OS
+   never updates itself behind your back. Same flow on a phone and on a desk. */
+const OS_VERSION = '1.5.0';
+const OS_BUILD = 2701;
+let updateChecked = false, toastT = null;
+
+function cmpVer(a, b){
+  const A = String(a || '0').split('.').map(n => parseInt(n, 10) || 0);
+  const B = String(b || '0').split('.').map(n => parseInt(n, 10) || 0);
+  for(let i = 0; i < Math.max(A.length, B.length); i++){
+    const x = A[i] || 0, y = B[i] || 0;
+    if(x !== y) return x > y ? 1 : -1;
+  }
+  return 0;
+}
+function toast(msg, ms){
+  const t = $('#ktoast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('on'), ms || 3400);
+}
+function closeModal(){
+  const m = $('#kmodal');
+  m.classList.remove('on');
+  m.innerHTML = '';
+}
+function checkUpdate(opts){
+  opts = opts || {};
+  if(opts.loud) toast('Проверяем обновления…', 2000);
+  return fetch('version.json?t=' + Date.now(), { cache:'no-store' })
+    .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(info => {
+      if(!info || !info.version) throw new Error('bad manifest');
+      const newer = cmpVer(info.version, OS_VERSION) > 0;
+      if(newer){
+        /* if we already tried this exact version and came back on the old one,
+           say so instead of asking again forever */
+        if(store.get('kos.updateTried', null) === info.version){
+          toast('Обновление ' + info.version + ' не применилось');
+          return { info, newer, stuck:true };
+        }
+        showUpdate(info);
+      } else if(opts.loud){
+        toast('Установлена последняя версия — ' + OS_VERSION);
+      }
+      return { info, newer };
+    })
+    .catch(err => {
+      if(opts.loud) toast('Сервер обновлений недоступен');
+      return { error: err };
+    });
+}
+function showUpdate(info){
+  const m = $('#kmodal');
+  const notes = (info.notes || []).slice(0, 6);
+  m.innerHTML =
+    '<div class="km-card">' +
+      '<div class="km-head"><span class="g">' + globe(30, 6) + '</span>' +
+        '<div><div class="km-t">Доступно обновление</div>' +
+          '<div class="km-v">' + esc(OS_VERSION) + ' → ' + esc(info.version) +
+            (info.build ? ' · build ' + esc(String(info.build)) : '') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="km-body">' +
+        (info.summary ? '<p>' + esc(info.summary) + '</p>' : '') +
+        (notes.length ? '<ul class="km-notes">' + notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>' : '') +
+      '</div>' +
+      '<div class="km-fine">Обновление атомарное: новая система пишется в свободный слот и включается целиком. ' +
+        'Если она не запустится, перезагрузка вернёт прежнюю. В этом демо слот — это перезагрузка страницы.</div>' +
+      '<div class="km-prog"><div class="km-bar"><i></i></div><div class="km-step"></div></div>' +
+      '<div class="km-foot">' +
+        '<button class="btn-line" id="kmLater">Позже</button>' +
+        '<button class="btn-solid" id="kmGo">Обновить сейчас</button>' +
+      '</div>' +
+    '</div>';
+  m.classList.add('on');
+  m.onclick = e => { if(e.target === m) $('#kmLater').click(); };
+  $('#kmLater').onclick = () => { closeModal(); toast('Отложено — вернуться можно в Настройках'); };
+  $('#kmGo').onclick = () => applyUpdate(info);
+  setTimeout(() => { const g = $('#kmGo'); if(g) g.focus(); }, 30);
+}
+function applyUpdate(info){
+  const m = $('#kmodal');
+  const foot = $('.km-foot', m), prog = $('.km-prog', m);
+  const bar = $('.km-bar i', m), step = $('.km-step', m);
+  if(foot) foot.remove();
+  m.onclick = null;
+  prog.classList.add('on');
+  store.set('kos.updateTried', info.version);
+  const steps = [['Загрузка образа', 35], ['Проверка подписи', 62], ['Запись в свободный слот', 88], ['Переключение слота', 100]];
+  let i = 0;
+  (function next(){
+    if(i >= steps.length){
+      step.textContent = 'Готово — перезапуск';
+      store.set('kos.updatedTo', info.version);
+      setTimeout(() => location.reload(), 750);
+      return;
+    }
+    const s = steps[i++];
+    step.textContent = s[0] + '…';
+    bar.style.width = s[1] + '%';
+    setTimeout(next, 620);
+  })();
+}
+/* the dialog the user sees when a real update lands — viewable on demand */
+function previewUpdate(){
+  showUpdate({
+    version: OS_VERSION.replace(/(\d+)$/, n => (+n + 1)),
+    build: OS_BUILD + 1,
+    summary: 'Так выглядит настоящее обновление. Это предпросмотр диалога — ничего не будет установлено.',
+    notes: ['Пример пункта из списка изменений', 'Второй пример', 'Третий пример']
+  });
+  const go = $('#kmGo');
+  go.textContent = 'Закрыть предпросмотр';
+  go.onclick = () => closeModal();
+}
+
 /* ---------------------------- session / phases ---------------------------- */
 let user = store.get('kos.user', null);
 let BOOT_T = Date.now();
@@ -817,7 +1241,9 @@ const BOOT_LINES = [
   [160, '<span class="tag">[ OK ]</span> wireframe globe spun up'],
   [230, '<span class="tagw">[WAIT]</span> LASTOCHKA neural core ....... no uplink, deferred'],
   [140, '<span class="tag">[ OK ]</span> window manager: KWM, corners set to cubic'],
-  [190, '<span class="tag">[ OK ]</span> KONEKT OS 1.4.2 (build 2618) ready']
+  [130, '<span class="tag">[ OK ]</span> KONEKT BROWSER registered as the default browser'],
+  [150, '<span class="tag">[ OK ]</span> update channel: stable — checking at every start'],
+  [190, '<span class="tag">[ OK ]</span> KONEKT OS 1.5.0 (build 2701) ready']
 ];
 let bootTimer = null;
 function boot(){
@@ -933,6 +1359,19 @@ function enterDesktop(){
   renderIcons();
   renderStartMenu();
   setPhase('os');
+  /* confirm a finished update, then look for the next one — once per session */
+  const done = store.get('kos.updatedTo', null);
+  if(done){
+    store.del('kos.updatedTo');
+    if(cmpVer(done, OS_VERSION) <= 0){
+      store.del('kos.updateTried');
+      setTimeout(() => toast('Обновлено до KONEKT OS ' + OS_VERSION), 800);
+    }
+  }
+  if(!updateChecked){
+    updateChecked = true;
+    setTimeout(() => checkUpdate({}), 1400);
+  }
 }
 
 /* ---------------------------- window manager ---------------------------- */
@@ -1180,7 +1619,7 @@ function renderStartMenu(){
     '<div class="sm-head">' +
       '<div class="sm-av">' + esc(user.name[0].toUpperCase()) + '</div>' +
       '<div><div class="sm-n">' + esc(user.name) + '</div>' +
-      '<div class="sm-d">KONEKT.WORLD headset · KonektOS 1.4</div></div>' +
+      '<div class="sm-d">KONEKT.WORLD headset · KonektOS ' + OS_VERSION + '</div></div>' +
     '</div>' +
     '<div class="sm-list">' +
       Object.entries(APPS).map(([id, a]) =>
@@ -1250,6 +1689,7 @@ function renderIcons(){
 
 /* ---------------------------- apps ---------------------------- */
 const APPS = {
+  web:    { name:'BROWSER',  icon: IC.browser, w:980, h:660, launch: launchBrowser },
   konekt: { name:'KONEKT',   icon: IC.globe, w:1080, h:700, launch: launchKonekt },
   files:  { name:'FILES',    icon: IC.files, w:700,  h:480, launch: launchFiles },
   term:   { name:'TERMINAL', icon: IC.term,  w:640,  h:420, launch: launchTerm },
@@ -1270,6 +1710,155 @@ function openApp(id, arg){
   a.launch(w, arg);
   tbSync();
   return w;
+}
+
+/* ---------- KONEKT BROWSER (preinstalled, the default browser) ----------
+   The desktop build is Chromium via Electron; here the engine is the page's own,
+   so sites that refuse to be framed get an honest card instead of a blank pane. */
+const KB_DIALS = [
+  { t:'KONEKT',    u:'https://konekt-tawny.vercel.app/',  k:'globe' },
+  { t:'KONEKT OS', u:'https://konekt-os.vercel.app/',     k:'globe' },
+  { t:'BROWSER',   u:'https://konekt-browser.vercel.app/',k:'browser' },
+  { t:'ГОСУСЛУГИ', u:'https://www.gosuslugi.ru/',         k:'G' },
+  { t:'ЯНДЕКС',    u:'https://ya.ru/',                    k:'Я' },
+  { t:'ВИКИПЕДИЯ', u:'https://ru.wikipedia.org/',         k:'W' }
+];
+/* only our own origins are known to allow framing; everything else opens outside */
+function kbFrameable(url){
+  return /^https:\/\/(konekt-tawny|konekt-os|konekt-browser)[a-z0-9-]*\.vercel\.app(\/|$)/i.test(url);
+}
+function kbHost(url){ try{ return new URL(url).hostname.replace(/^www\./, ''); }catch(e){ return url; } }
+function launchBrowser(w, arg){
+  const st = { tabs: [{ url:'', back:[], fwd:[] }], cur:0 };
+  w.body.innerHTML =
+    '<div class="kb">' +
+      '<div class="kb-tabs"></div>' +
+      '<div class="kb-bar">' +
+        '<button class="kb-b bk" title="Back" aria-label="Back">' + IC.back + '</button>' +
+        '<button class="kb-b fw" title="Forward" aria-label="Forward">' + IC.fwd + '</button>' +
+        '<button class="kb-b rl" title="Reload" aria-label="Reload">' + IC.reload + '</button>' +
+        '<button class="kb-b hm" title="Speed Dial" aria-label="Speed Dial">' + IC.home + '</button>' +
+        '<div class="kb-omni"><span class="lock">HTTPS</span>' +
+          '<input placeholder="Поиск или адрес" spellcheck="false" autocomplete="off" aria-label="Address bar"></div>' +
+        '<button class="kb-b st" title="Bookmark" aria-label="Bookmark">' + IC.star + '</button>' +
+        '<button class="kb-b ex" title="Open outside KONEKT OS" aria-label="Open outside">' + IC.ext + '</button>' +
+      '</div>' +
+      '<div class="kb-view"></div>' +
+      '<div class="kb-note"><span class="l"></span><span class="r"></span></div>' +
+    '</div>';
+  const tabsBox = $('.kb-tabs', w.body), view = $('.kb-view', w.body);
+  const omni = $('.kb-omni input', w.body), lock = $('.kb-omni .lock', w.body);
+  const noteL = $('.kb-note .l', w.body), noteR = $('.kb-note .r', w.body);
+  const tab = () => st.tabs[st.cur];
+
+  function go(url, push){
+    const t = tab();
+    if(push !== false && url !== t.url){
+      t.back.push(t.url);          /* '' is Speed Dial — Back must return to it */
+      t.fwd.length = 0;
+    }
+    t.url = url;
+    render();
+  }
+  function submit(v){
+    v = v.trim();
+    if(!v){ go(''); return; }
+    if(/^[a-z]+:\/\//i.test(v)) return go(v);
+    if(/^[\w-]+(\.[\w-]+)+(\/|$)/.test(v)) return go('https://' + v);
+    go('https://yandex.ru/search/?text=' + encodeURIComponent(v));
+  }
+  function renderTabs(){
+    tabsBox.innerHTML = '';
+    st.tabs.forEach((t, i) => {
+      const label = t.url ? kbHost(t.url) : 'Speed Dial';
+      const b = el('<button class="kb-tab' + (i === st.cur ? ' on' : '') + '" aria-label="' + esc(label) + '">' +
+        '<span class="t">' + esc(label) + '</span>' +
+        (st.tabs.length > 1 ? '<span class="x" role="button" aria-label="Close tab">×</span>' : '') + '</button>');
+      b.onclick = e => {
+        if(e.target.classList.contains('x')){
+          st.tabs.splice(i, 1);
+          st.cur = Math.min(st.cur, st.tabs.length - 1);
+        } else st.cur = i;
+        render();
+      };
+      tabsBox.appendChild(b);
+    });
+    const nb = el('<button class="kb-newtab" title="New tab" aria-label="New tab">' + IC.plus + '</button>');
+    nb.onclick = () => { st.tabs.push({ url:'', back:[], fwd:[] }); st.cur = st.tabs.length - 1; render(); };
+    tabsBox.appendChild(nb);
+  }
+  function speedDial(){
+    const sd = el('<div class="kb-sd scroll">' +
+      '<div class="mk">' + logoLong(26) + '</div><div class="cl" id="kbClock"></div>' +
+      '<h3>Speed Dial</h3><div class="kb-dials"></div></div>');
+    const grid = $('.kb-dials', sd);
+    KB_DIALS.forEach(d => {
+      const fav = d.k === 'globe' ? globe(20, 7)
+                : d.k === 'browser' ? IC.browser
+                : '<span style="font-size:17px;font-weight:800">' + d.k + '</span>';
+      const b = el('<button class="kb-dial" aria-label="' + esc(d.t) + '">' +
+        '<span class="fav">' + fav + '</span><span class="t">' + esc(d.t) + '</span>' +
+        '<span class="h">' + esc(kbHost(d.u)) + '</span></button>');
+      b.onclick = () => go(d.u);
+      grid.appendChild(b);
+    });
+    return sd;
+  }
+  function render(){
+    renderTabs();
+    const t = tab();
+    view.innerHTML = '';
+    omni.value = t.url;
+    lock.textContent = t.url ? (t.url.startsWith('https://') ? 'HTTPS' : 'НЕ ЗАЩИЩЕНО') : '';
+    lock.classList.toggle('no', !!t.url && !t.url.startsWith('https://'));
+    $('.bk', w.body).disabled = !t.back.length;
+    $('.fw', w.body).disabled = !t.fwd.length;
+
+    if(!t.url){
+      view.appendChild(speedDial());
+      noteL.textContent = 'KONEKT BROWSER · предустановлен';
+      noteR.innerHTML = '';
+      setWinTitle(w, 'KONEKT BROWSER');
+      return;
+    }
+    setWinTitle(w, 'KONEKT BROWSER — ' + kbHost(t.url));
+    if(kbFrameable(t.url)){
+      const f = el('<iframe title="' + esc(kbHost(t.url)) + '" allow="camera; microphone; fullscreen; clipboard-write"></iframe>');
+      view.appendChild(f);
+      f.src = t.url;
+      noteL.textContent = kbHost(t.url);
+      noteR.innerHTML = '<a href="' + esc(t.url) + '" target="_blank" rel="noopener">открыть снаружи ↗</a>';
+    } else {
+      view.appendChild(el('<div class="kb-page">' +
+        '<div>' + globe(34, 6) + '</div>' +
+        '<div class="t">' + esc(kbHost(t.url)) + ' не разрешает встраивание</div>' +
+        '<div class="d">Сайт присылает заголовок, который запрещает открывать его внутри другой страницы. ' +
+        'В настоящем KONEKT BROWSER — движок Chromium, и такой страницы нет: она просто открывается. ' +
+        'Здесь, внутри демо в браузере, честнее показать это, чем пустое окно.</div>' +
+        '<a class="btn-solid" href="' + esc(t.url) + '" target="_blank" rel="noopener">Открыть в настоящем браузере</a>' +
+        '</div>'));
+      noteL.textContent = 'встраивание запрещено сайтом';
+      noteR.innerHTML = '';
+    }
+  }
+  omni.onkeydown = e => { if(e.key === 'Enter') submit(omni.value); };
+  $('.bk', w.body).onclick = () => { const t = tab(); if(t.back.length){ t.fwd.push(t.url); t.url = t.back.pop(); render(); } };
+  $('.fw', w.body).onclick = () => { const t = tab(); if(t.fwd.length){ t.back.push(t.url); t.url = t.fwd.pop(); render(); } };
+  $('.rl', w.body).onclick = () => render();
+  $('.hm', w.body).onclick = () => go('');
+  $('.st', w.body).onclick = () => { noteL.textContent = tab().url ? 'закладка сохранена локально' : 'нечего добавлять в закладки'; };
+  $('.ex', w.body).onclick = () => { if(tab().url) open(tab().url, '_blank', 'noopener'); };
+
+  const clock = setInterval(() => {
+    const c = $('#kbClock', w.body);
+    if(c){ const n = new Date(); c.textContent = two(n.getHours()) + ':' + two(n.getMinutes()); }
+  }, 1000);
+  w.onClose = () => clearInterval(clock);
+  w.onArg = a => { if(a && a.url) go(a.url); };
+  render();
+  const c = $('#kbClock', w.body);
+  if(c){ const n = new Date(); c.textContent = two(n.getHours()) + ':' + two(n.getMinutes()); }
+  if(arg && arg.url) go(arg.url);
 }
 
 /* ---------- KONEKT (the network, embedded) ---------- */
@@ -1644,8 +2233,9 @@ function launchTerm(w){
       if(err) printText(err, 'err'); else { refreshFiles(); refreshNotesList(); renderIcons(); }
     }},
     open: { d:'open an app or a .txt file', fn(a){
-      if(!a[0]){ printText('open: konekt|files|term|notes|kalc|settings, or a path', 'err'); return; }
-      const alias = { konekt:'konekt', files:'files', term:'term', terminal:'term', notes:'notes', kalc:'calc', calc:'calc', settings:'set', set:'set' };
+      if(!a[0]){ printText('open: browser|konekt|files|term|notes|kalc|settings, a path, or a URL', 'err'); return; }
+      if(/^https?:\/\//i.test(a[0])){ openApp('web', { url: a[0] }); return; }
+      const alias = { browser:'web', web:'web', kb:'web', konekt:'konekt', files:'files', term:'term', terminal:'term', notes:'notes', kalc:'calc', calc:'calc', settings:'set', set:'set' };
       if(alias[a[0].toLowerCase()]){ openApp(alias[a[0].toLowerCase()]); return; }
       const p = fsResolve(a[0], st.cwd);
       const node = fsGet(p);
@@ -1653,15 +2243,21 @@ function launchTerm(w){
       if(node.type === 'dir') openApp('files', { path: p });
       else openApp('notes', { path: p });
     }},
-    wallpaper: { d:'wallpaper list|void|nebula|grid|orbit', fn(a){
-      if(!a[0] || a[0] === 'list'){ Object.keys(WALLS).forEach(k => printText((k === settings.wall ? '* ' : '  ') + k)); return; }
-      if(!WALLS[a[0]]){ printText('no such wallpaper', 'err'); return; }
+    wallpaper: { d:'wallpaper list|<name> — ten of them', fn(a){
+      if(!a[0] || a[0] === 'list'){ wallKeys().forEach(k => printText((k === settings.wall ? '* ' : '  ') + k)); return; }
+      if(wallKeys().indexOf(a[0]) < 0){ printText('no such wallpaper (try "wallpaper list")', 'err'); return; }
       settings.wall = a[0]; saveSettings(); applySettings(); refreshSettings();
+    }},
+    theme: { d:'theme dark|light|system|glass|custom', fn(a){
+      const modes = ['dark', 'light', 'system', 'glass', 'custom'];
+      if(!a[0]){ modes.forEach(m => printText((m === settings.mode ? '* ' : '  ') + m)); return; }
+      if(modes.indexOf(a[0]) < 0){ printText('no such colour scheme', 'err'); return; }
+      settings.mode = a[0]; saveSettings(); applySettings(); refreshSettings();
     }},
     date: { d:'the time on this side of the visor', fn(){ printText(new Date().toString()); }},
     whoami: { d:'you', fn(){ printText(user.name); }},
     hostname: { d:'this device', fn(){ printText('konekt.world (headset rev C)'); }},
-    uname: { d:'kernel', fn(){ printText('KonektOS 1.4.2 swallow-6.1.0-nko cubic'); }},
+    uname: { d:'kernel', fn(){ printText('KonektOS ' + OS_VERSION + ' swallow-6.1.0-nko cubic'); }},
     uptime: { d:'time since boot', fn(){
       const s = Math.floor((Date.now() - BOOT_T) / 1000);
       printText('up ' + Math.floor(s / 60) + ' min ' + (s % 60) + ' s');
@@ -1670,26 +2266,38 @@ function launchTerm(w){
     neofetch: { d:'device card', fn(){
       const info = [
         ['', ''],
-        ['OS',       'KonektOS 1.4.2 (build 2618)'],
+        ['OS',       'KonektOS ' + OS_VERSION + ' (build ' + OS_BUILD + ')'],
         ['Host',     'KONEKT.WORLD headset rev C'],
         ['Kernel',   'swallow 6.1.0-nko'],
         ['Uptime',   Math.floor((Date.now() - BOOT_T) / 60000) + ' min'],
         ['Shell',    'ksh 1.4'],
-        ['WM',       'KWM (' + settings.corners + ')'],
-        ['Theme',    settings.theme + ' / ' + settings.wall],
+        ['WM',       'KWM (' + (parseInt(settings.radius, 10) || 0) + 'px corners)'],
+        ['Theme',    (settings.mode || 'dark') + ' / ' + settings.wall],
         ['Accent',   settings.accent],
+        ['Browser',  'KONEKT BROWSER (preinstalled)'],
         ['Storage',  Math.max(1, Math.round(fsSizeOf(FS) / 102.4) / 10) + ' KB of ∞'],
         ['User',     user.name]
       ];
-      NEOFETCH_ART.forEach((line, i) => {
-        const kv = info[i] || ['', ''];
+      const pad = ' '.repeat(NEOFETCH_ART[0].length);
+      for(let i = 0; i < Math.max(NEOFETCH_ART.length, info.length); i++){
+        const line = NEOFETCH_ART[i] || pad, kv = info[i] || ['', ''];
         print('<span class="acc">' + esc(line) + '</span>  ' +
           (kv[0] ? '<span class="grn">' + esc(kv[0].padEnd(9)) + '</span>' + esc(kv[1]) : ''));
-      });
+      }
     }},
     lastochka: { d:'the assistant', fn(){
       printText('LASTOCHKA: no uplink on this build. I live in the KONEKT app —');
       printText('           open konekt and look for the swallow.', 'dim');
+    }},
+    update: { d:'check for a system update ("update preview" shows the dialog)', fn(a){
+      if(a[0] === 'preview'){ previewUpdate(); return; }
+      printText('checking version.json …', 'dim');
+      checkUpdate({}).then(r => {
+        if(!r || r.error){ printText('update server unreachable', 'err'); return; }
+        if(r.newer) printText('update available: ' + r.info.version + ' — dialog opened');
+        else printText('up to date — KONEKT OS ' + OS_VERSION + ' (build ' + OS_BUILD + ')', 'dim');
+        box.scrollTop = box.scrollHeight;
+      });
     }},
     clear: { d:'wipe the screen (also Ctrl+L)', fn(){ $$('.tl', box).forEach(x => x.remove()); }},
     exit: { d:'close the terminal', fn(){ const w2 = winFor('term'); if(w2) closeWin(w2); }},
@@ -1697,7 +2305,7 @@ function launchTerm(w){
     shutdown: { d:'power off', fn(){ shutdown(); }}
   };
   box.addEventListener('click', () => { const i = $('.term-in', box); if(i && !getSelection().toString()) i.focus(); });
-  print('<span class="dim">KonektOS 1.4.2 — ksh. Type "help". Nothing here leaves the device.</span>');
+  print('<span class="dim">KonektOS ' + OS_VERSION + ' — ksh. Type "help". Nothing here leaves the device.</span>');
   inputRow();
 }
 
@@ -1780,25 +2388,94 @@ function launchSettings(w, arg){
     $$('.st-ni', w.body).forEach(b => b.classList.toggle('on', b.dataset.p === st.pane));
     main.innerHTML = '';
     if(st.pane === 'appearance'){
-      sec('Theme').appendChild(seg([['dark','Dark'],['light','Light']], settings.theme, v => { settings.theme = v; saveSettings(); applySettings(); }));
-      sec('Corners').appendChild(seg([['cubic','Cubic'],['soft','Soft']], settings.corners, v => { settings.corners = v; saveSettings(); applySettings(); }));
-      sec('Motion').appendChild(seg([['on','On'],['off','Reduced']], settings.motion, v => { settings.motion = v; saveSettings(); applySettings(); }));
+      const set = (k, v) => { settings[k] = v; saveSettings(); applySettings(); render(); };
+
+      sec('Appearance — colour scheme').appendChild(seg(
+        [['dark','Dark'],['light','Light'],['system','System'],['glass','Glass'],['custom','Custom']],
+        settings.mode, v => set('mode', v)));
+
+      if(settings.mode === 'custom'){
+        const cs = sec('Custom colours');
+        const fallbackBg = document.documentElement.dataset.theme === 'light' ? '#ffffff' : '#0a0b0d';
+        const fields = [
+          ['Background', 'bgCol',   settings.bgCol   || fallbackBg],
+          ['Outlines',   'lineCol', settings.lineCol || '#434343'],
+          ['Text',       'textCol', settings.textCol || (document.documentElement.dataset.theme === 'light' ? '#000000' : '#ffffff')]
+        ];
+        fields.forEach(([label, key, val]) => {
+          const row = el('<div class="col-row"><span class="col-l">' + label + '</span>' +
+            '<span class="col-r"><input type="color" value="' + val + '"><b>' + val.toUpperCase() + '</b></span></div>');
+          $('input', row).oninput = e => { settings[key] = e.target.value; saveSettings(); applySettings(); $('b', row).textContent = e.target.value.toUpperCase(); };
+          $('input', row).onchange = () => render();
+          cs.appendChild(row);
+        });
+        const bg = settings.bgCol || fallbackBg, ink = settings.textCol || (luma(bg) > .5 ? '#000000' : '#ffffff');
+        const ratio = contrast(bg, ink);
+        cs.appendChild(el('<div class="st-note"' + (ratio < 4.5 ? ' style="color:var(--warn)"' : '') + '>' +
+          'Text on background: ' + ratio.toFixed(1) + ':1' +
+          (ratio < 4.5 ? ' — below the 4.5:1 readability floor. The greys are derived from these two, so low contrast spreads everywhere.'
+                       : ' — comfortable. The greys and hover states are derived from these two colours.') + '</div>'));
+      }
+
       const ac = sec('Accent');
       const sw = el('<div class="swatches"></div>');
       ACCENTS.forEach(c => {
-        const b = el('<button class="swatch' + (c === settings.accent ? ' on' : '') + '" style="background:' + c + '" title="' + c + '"></button>');
-        b.onclick = () => { settings.accent = c; saveSettings(); applySettings(); render(); };
+        const on = String(settings.accent).toLowerCase() === c.toLowerCase();
+        const b = el('<button class="swatch' + (on ? ' on' : '') + '" style="background:' + c + '" title="' + c + '" aria-label="Accent ' + c + '"></button>');
+        b.onclick = () => set('accent', c);
         sw.appendChild(b);
       });
+      const wheel = el('<label class="swatch sw-wheel" title="Custom accent"><input type="color" value="' + settings.accent + '"></label>');
+      $('input', wheel).oninput = e => { settings.accent = e.target.value; saveSettings(); applySettings(); };
+      $('input', wheel).onchange = () => render();
+      sw.appendChild(wheel);
       ac.appendChild(sw);
+
+      sec('Text size').appendChild(seg([['s','S'],['m','M'],['l','L']], settings.fs || 'm', v => set('fs', v)));
+
+      const sh = sec('Shape');
+      const rad = Math.max(0, Math.min(24, parseInt(settings.radius, 10) || 0));
+      const rr = el('<div class="rng-row"><span class="col-l">Corner rounding</span>' +
+        '<span class="col-r"><input type="range" min="0" max="24" step="2" value="' + rad + '"><b>' + rad + 'px</b></span></div>');
+      $('input', rr).oninput = e => {
+        settings.radius = +e.target.value; saveSettings(); applySettings();
+        $('b', rr).textContent = settings.radius + 'px';
+      };
+      sh.appendChild(rr);
+
+      const tg = sec('Interface');
+      /* "Reduce motion" reads inverted: On means settings.motion is false */
+      [['Round avatar',        !!settings.avRound,        v => set('avRound', v)],
+       ['Uppercase interface', settings.caps !== false,   v => set('caps', v)],
+       ['Reduce motion',       settings.motion === false, v => set('motion', !v)]
+      ].forEach(([label, on, apply]) => {
+        const b = el('<button class="tog-row"><span>' + label + '</span><span class="tog-v' + (on ? ' on' : '') + '">' + (on ? 'On' : 'Off') + '</span></button>');
+        b.onclick = () => apply(!on);
+        tg.appendChild(b);
+      });
+
       const wl = sec('Wallpaper');
       const ws = el('<div class="walls"></div>');
-      Object.keys(WALLS).forEach(k => {
-        const b = el('<button class="wall' + (k === settings.wall ? ' on' : '') + '" aria-label="' + WALL_NAMES[k] + '" style=\'background-image:url("' + WALLS[k]() + '")\'><span>' + WALL_NAMES[k] + '</span></button>');
-        b.onclick = () => { settings.wall = k; saveSettings(); applySettings(); render(); };
+      wallKeys().forEach(k => {
+        const css = wallCSS(k);
+        const b = el('<button class="wall' + (k === settings.wall ? ' on' : '') + '" aria-label="' + WALL_NAMES[k] + '"' +
+          ' style=\'background-image:' + (css || 'none') + (css ? '' : ';background:var(--hover-2)') + '\'><span>' + WALL_NAMES[k] + '</span></button>');
+        b.onclick = () => set('wall', k);
         ws.appendChild(b);
       });
       wl.appendChild(ws);
+
+      sec('Layout').appendChild(seg([['cozy','Cozy'],['compact','Compact']], settings.density || 'cozy', v => set('density', v)));
+
+      const rs = sec('Reset');
+      const rb = el('<button class="btn-line">Reset appearance</button>');
+      rb.onclick = () => {
+        ['mode','bgCol','lineCol','textCol','accent','fs','radius','avRound','caps','motion','wall','density']
+          .forEach(k => settings[k] = DEFAULTS[k]);
+        saveSettings(); applySettings(); render();
+      };
+      rs.appendChild(rb);
+      rs.insertAdjacentHTML('beforeend', '<div class="st-note">Returns every appearance setting to the original KONEKT look: black, cubic, one accent.</div>');
     }
     if(st.pane === 'account'){
       const nm = sec('Display name');
@@ -1824,11 +2501,33 @@ function launchSettings(w, arg){
       const mins = Math.floor((Date.now() - BOOT_T) / 60000);
       sec('About this headset').insertAdjacentHTML('beforeend',
         '<div class="about-row"><span class="k">device</span><span class="v">KONEKT.WORLD headset rev C</span></div>' +
-        '<div class="about-row"><span class="k">os</span><span class="v">KonektOS 1.4.2 (build 2618)</span></div>' +
+        '<div class="about-row"><span class="k">os</span><span class="v">KonektOS ' + OS_VERSION + ' (build ' + OS_BUILD + ')</span></div>' +
         '<div class="about-row"><span class="k">kernel</span><span class="v">swallow 6.1.0-nko</span></div>' +
+        '<div class="about-row"><span class="k">browser</span><span class="v">KONEKT BROWSER · preinstalled, default</span></div>' +
         '<div class="about-row"><span class="k">uptime</span><span class="v">' + (mins < 1 ? 'under a minute' : mins + ' min') + '</span></div>' +
         '<div class="about-row"><span class="k">local files</span><span class="v">' + Math.max(1, Math.round(fsSizeOf(FS) / 102.4) / 10) + ' KB</span></div>' +
         '<div class="about-row"><span class="k">foundation</span><span class="v">NKO Intl. Foundation of Technological Research &amp; Development</span></div>');
+
+      const sw2 = sec('Software update');
+      const upRow = el('<div class="st-field"></div>');
+      const upBtn = el('<button class="btn-line">Check for updates</button>');
+      upBtn.onclick = () => {
+        upBtn.disabled = true;
+        upBtn.textContent = 'Checking…';
+        checkUpdate({ loud:true }).then(() => {
+          upBtn.disabled = false;
+          upBtn.textContent = 'Check for updates';
+        });
+      };
+      const prevBtn = el('<button class="btn-line">See the update dialog</button>');
+      prevBtn.onclick = () => previewUpdate();
+      upRow.appendChild(upBtn); upRow.appendChild(prevBtn);
+      sw2.appendChild(upRow);
+      sw2.insertAdjacentHTML('beforeend',
+        '<div class="st-note">KONEKT OS checks for a new build every time it starts, on a phone exactly as on a desktop. ' +
+        'It never installs anything without asking: you get the release notes and a choice. Updates are atomic — the new system ' +
+        'is written to the free slot and switched on whole, so a bad build is undone by a reboot.</div>');
+
       const pw = sec('Power');
       const rowP = el('<div class="st-field"></div>');
       const rb = el('<button class="btn-line">Reboot</button>');
