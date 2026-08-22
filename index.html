@@ -10,6 +10,290 @@
 <meta name="theme-color" content="#000000">
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-56 -56 112 112"><rect x="-56" y="-56" width="112" height="112" fill="black"/><g fill="none" stroke="white" stroke-width="7.4"><circle r="50"/><ellipse rx="18" ry="50"/><ellipse rx="36.5" ry="50"/><line y1="-50" y2="50"/><line x1="-48.7" y1="0" x2="48.7" y2="0"/><line x1="-43.8" y1="21.5" x2="43.8" y2="21.5"/><line x1="-43.8" y1="-21.5" x2="43.8" y2="-21.5"/></g></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<!-- KONEKT LOOK — shared verbatim from konekt-kouch/public/konekt-look.js; do not edit here -->
+<script>
+/* =====================================================================
+   KONEKT LOOK — one appearance for the whole family.
+   ---------------------------------------------------------------------
+   Every KONEKT product ships this file verbatim (inlined or linked). It
+   owns the appearance settings, the colour maths, the CSS variables and
+   data-attributes every product already reads, the migration from each
+   product's old keys, the settings panel markup, and the hooks a product
+   uses to sync the look through the account.
+
+   The settings object (KONEKT_LOOK.get()):
+     mode     'dark' | 'light' | 'system' | 'glass' | 'custom'
+     bgCol, lineCol, textCol   '' or #rrggbb   (custom mode; picking one forces custom)
+     accent   #rrggbb                           (seven presets + any colour)
+     fs       's' | 'm' | 'l'                   (text size)
+     radius   0..24                             (px, step 2; 0 = cubic)
+     avRound  boolean                           (round avatars)
+     caps     boolean                           (uppercase labels)
+     motion   boolean                           (false = reduced)
+     wall     'none' | aurora | ember | mono | teal | violet | void | nebula | grid | orbit
+     density  'cozy' | 'compact'
+     lang     'en' | 'ru'                       (interface language)
+
+   What it writes on <html>:
+     data-theme=dark|light (resolved), data-appearance=<mode>, data-fs, data-caps=on|off,
+     data-motion=on|off, data-round=full|square (avatars), data-density, data-wall-on=1|0,
+     data-lang, lang=; and the variables --accent, --radius, --av-radius, --wall, plus
+     --bg/--hover/--hover-2/--line/--line-2/--line-3/--text in custom mode.
+   Storage: localStorage 'konekt_look' (same key in every product). Sync: connect().
+   ===================================================================== */
+(function (root) {
+  'use strict';
+  var KEY = 'konekt_look';
+  var DEFAULTS = {
+    mode: 'dark', bgCol: '', lineCol: '', textCol: '', accent: '#1d9bf0',
+    fs: 'm', radius: 0, avRound: false, caps: true, motion: true,
+    wall: 'none', density: 'cozy', lang: '',
+  };
+  var ACCENTS = [
+    ['#1d9bf0', 'Sky'], ['#00ba7c', 'Mint'], ['#f91880', 'Rose'], ['#ffd400', 'Gold'],
+    ['#a970ff', 'Violet'], ['#ff6a00', 'Ember'], ['#ffffff', 'Ink'],
+  ];
+  var WALLS = {
+    none: '',
+    aurora: 'radial-gradient(120% 120% at 20% 0%, #10233b 0%, #0a0a12 45%, #000 100%), radial-gradient(90% 90% at 100% 100%, #241033 0%, transparent 60%)',
+    ember: 'radial-gradient(120% 120% at 0% 0%, #2a0f0f 0%, #0a0708 45%, #000 100%), radial-gradient(90% 90% at 100% 30%, #3a1d05 0%, transparent 60%)',
+    mono: 'radial-gradient(120% 120% at 50% 0%, #1a1a1a 0%, #0a0a0a 50%, #000 100%)',
+    teal: 'radial-gradient(120% 120% at 15% 10%, #06272b 0%, #06131a 45%, #000 100%), radial-gradient(80% 80% at 100% 100%, #0b3a2e 0%, transparent 60%)',
+    violet: 'radial-gradient(120% 120% at 80% 0%, #1a1040 0%, #0a0816 45%, #000 100%), radial-gradient(90% 90% at 0% 100%, #3a0f36 0%, transparent 60%)',
+    void: 'radial-gradient(100% 100% at 50% 50%, #050505 0%, #000 100%)',
+    nebula: 'radial-gradient(60% 80% at 30% 20%, #1b1037 0%, transparent 60%), radial-gradient(50% 60% at 75% 70%, #0b2a3a 0%, transparent 60%), #000',
+    grid: 'linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px) 0 0/40px 40px, linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px) 0 0/40px 40px, #000',
+    orbit: 'radial-gradient(circle at 50% 120%, rgba(29,155,240,.25) 0%, transparent 55%), #000',
+  };
+  var WALL_NAMES = { none: 'None', aurora: 'Aurora', ember: 'Ember', mono: 'Mono', teal: 'Teal', violet: 'Violet', void: 'Void', nebula: 'Nebula', grid: 'Grid', orbit: 'Orbit' };
+
+  /* ---------------- colour maths — identical in every product ---------------- */
+  function hex2rgb(h){ h = String(h || '').trim(); var m = /^#?([0-9a-f]{6})$/i.exec(h); if (!m) { var s = /^#?([0-9a-f]{3})$/i.exec(h); if (!s) return null; m = [0, s[1][0] + s[1][0] + s[1][1] + s[1][1] + s[1][2] + s[1][2]]; } var n = parseInt(m[1], 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function rgb2hex(c){ return '#' + c.map(function (v) { return ('0' + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2); }).join(''); }
+  function luma(h){ var c = hex2rgb(h); return c ? (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 : 0; }
+  function mixHex(a, b, t){ var x = hex2rgb(a), y = hex2rgb(b); if (!x || !y) return a; return rgb2hex([0, 1, 2].map(function (i) { return x[i] + (y[i] - x[i]) * t; })); }
+  function contrast(a, b){ var la = luma(a), lb = luma(b); var hi = Math.max(la, lb), lo = Math.min(la, lb); return (hi + 0.05) / (lo + 0.05); }
+  function prefersLight(){ return !!(root.matchMedia && root.matchMedia('(prefers-color-scheme: light)').matches); }
+
+  /* ---------------- state ---------------- */
+  var look = null, listeners = [], sync = null, saveT = null;
+  function clean(o){
+    var out = {};
+    for (var k in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, k)) out[k] = DEFAULTS[k];
+    if (!o || typeof o !== 'object') return out;
+    if (['dark', 'light', 'system', 'glass', 'custom'].indexOf(o.mode) >= 0) out.mode = o.mode;
+    ['bgCol', 'lineCol', 'textCol'].forEach(function (k) { out[k] = hex2rgb(o[k]) ? rgb2hex(hex2rgb(o[k])) : ''; });
+    out.accent = hex2rgb(o.accent) ? rgb2hex(hex2rgb(o.accent)) : DEFAULTS.accent;
+    if (['s', 'm', 'l'].indexOf(o.fs) >= 0) out.fs = o.fs;
+    var r = Number(o.radius); if (isFinite(r)) out.radius = Math.max(0, Math.min(24, Math.round(r / 2) * 2));
+    if (typeof o.avRound === 'boolean') out.avRound = o.avRound; else if (o.avRound === 'on' || o.avRound === 'off') out.avRound = o.avRound === 'on';
+    if (typeof o.caps === 'boolean') out.caps = o.caps; else if (o.caps === 'on' || o.caps === 'off') out.caps = o.caps === 'on';
+    if (typeof o.motion === 'boolean') out.motion = o.motion; else if (o.motion === 'on' || o.motion === 'off') out.motion = o.motion === 'on';
+    if (WALLS.hasOwnProperty(o.wall)) out.wall = o.wall;
+    if (o.density === 'compact' || o.density === 'cozy') out.density = o.density;
+    if (o.lang === 'en' || o.lang === 'ru') out.lang = o.lang;
+    for (var k2 in o) if (Object.prototype.hasOwnProperty.call(o, k2) && !(k2 in out)) out[k2] = o[k2];   /* keep what a newer product wrote */
+    return out;
+  }
+  function read(){ try { return JSON.parse(root.localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } }
+  function write(){ try { root.localStorage.setItem(KEY, JSON.stringify(look)); } catch (e) {} }
+
+  /* ---------------- migration from every product's old keys ----------------
+     Runs once, only when konekt_look is absent. Each product passes what it
+     used to store; whatever it recognises becomes the first universal look. */
+  function migrate(legacy){
+    var o = {};
+    if (!legacy) return o;
+    var mode = legacy.mode || legacy.theme;
+    if (mode === 'geek') mode = 'dark';
+    if (mode === '' ) mode = 'dark';
+    if (mode) o.mode = mode;
+    if (legacy.accent) o.accent = legacy.accent;
+    ['bgCol', 'lineCol', 'textCol'].forEach(function (k) { if (legacy[k]) o[k] = legacy[k]; });
+    if (legacy.fs) o.fs = legacy.fs;
+    if (legacy.radius !== undefined) o.radius = Number(legacy.radius) || 0;
+    else if (legacy.round) o.radius = { cubic: 0, soft: 6, round: 12 }[legacy.round] || 0;
+    if (legacy.avRound !== undefined) o.avRound = legacy.avRound === true || legacy.avRound === 'on';
+    if (legacy.caps !== undefined) o.caps = legacy.caps === true || legacy.caps === 'on';
+    if (legacy.motion !== undefined) o.motion = legacy.motion === true || legacy.motion === 'on';
+    if (legacy.wall || legacy.wallpaper) { var w = legacy.wall || legacy.wallpaper; if (WALLS.hasOwnProperty(w)) o.wall = w; }
+    if (legacy.density) o.density = legacy.density;
+    if (legacy.lang === 'ru' || legacy.lang === 'en') o.lang = legacy.lang;
+    return o;
+  }
+
+  /* ---------------- apply ---------------- */
+  function apply(){
+    var r = root.document.documentElement, s = look;
+    var base = s.mode === 'light' ? 'light' : s.mode === 'dark' || s.mode === 'glass' ? 'dark' : s.mode === 'system' ? (prefersLight() ? 'light' : 'dark')
+      : (s.bgCol ? (luma(s.bgCol) > 0.5 ? 'light' : 'dark') : (prefersLight() ? 'light' : 'dark'));
+    r.setAttribute('data-theme', base);
+    r.setAttribute('data-appearance', s.mode);
+    var st = r.style;
+    ['--bg', '--hover', '--hover-2', '--line', '--line-2', '--line-3', '--text', '--text-2', '--dim', '--dim-2', '--btn-h'].forEach(function (v) { st.removeProperty(v); });
+    if (s.mode === 'custom') {
+      var ink = s.textCol || (base === 'light' ? '#000000' : '#ffffff');
+      if (s.bgCol) { st.setProperty('--bg', s.bgCol); st.setProperty('--hover', mixHex(s.bgCol, ink, 0.06)); st.setProperty('--hover-2', mixHex(s.bgCol, ink, 0.12)); }
+      if (s.lineCol) { st.setProperty('--line', s.lineCol); st.setProperty('--line-2', mixHex(s.lineCol, ink, 0.35)); st.setProperty('--line-3', mixHex(s.lineCol, s.bgCol || (base === 'light' ? '#ffffff' : '#0a0b0d'), 0.55)); }
+      if (s.textCol) { st.setProperty('--text', s.textCol); st.setProperty('--text-2', mixHex(s.textCol, s.bgCol || (base === 'light' ? '#ffffff' : '#000000'), 0.15)); st.setProperty('--dim', mixHex(s.textCol, s.bgCol || (base === 'light' ? '#ffffff' : '#000000'), 0.4)); st.setProperty('--dim-2', mixHex(s.textCol, s.bgCol || (base === 'light' ? '#ffffff' : '#000000'), 0.57)); st.setProperty('--btn-h', mixHex(s.textCol, s.bgCol || '#000000', 0.16)); }
+    }
+    st.setProperty('--accent', s.accent || DEFAULTS.accent);
+    r.setAttribute('data-fs', s.fs);
+    st.setProperty('--radius', (s.radius || 0) + 'px');
+    st.setProperty('--av-radius', s.avRound ? '50%' : (s.radius || 0) + 'px');
+    r.setAttribute('data-round', s.avRound ? 'full' : 'square');
+    r.setAttribute('data-caps', s.caps ? 'on' : 'off');
+    r.setAttribute('data-motion', s.motion ? 'on' : 'off');
+    r.setAttribute('data-density', s.density);
+    var wall = s.mode === 'glass' && s.wall === 'none' ? WALLS.aurora : WALLS[s.wall] || '';
+    if (wall) { st.setProperty('--wall', wall); r.setAttribute('data-wall-on', '1'); } else { st.removeProperty('--wall'); r.setAttribute('data-wall-on', '0'); }
+    var lang = s.lang || detectLang();
+    r.setAttribute('data-lang', lang); r.setAttribute('lang', lang);
+    var meta = root.document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', s.mode === 'custom' && s.bgCol ? s.bgCol : base === 'light' ? '#ffffff' : '#000000');
+    listeners.forEach(function (fn) { try { fn(look); } catch (e) {} });
+  }
+  function detectLang(){ return ((root.navigator && root.navigator.language) || '').toLowerCase().indexOf('ru') === 0 ? 'ru' : 'en'; }
+
+  /* ---------------- public surface ---------------- */
+  var API = {
+    KEY: KEY, DEFAULTS: DEFAULTS, ACCENTS: ACCENTS, WALLS: WALLS, WALL_NAMES: WALL_NAMES,
+    hex2rgb: hex2rgb, rgb2hex: rgb2hex, luma: luma, mixHex: mixHex, contrast: contrast, prefersLight: prefersLight,
+    /* init(legacy?) — load konekt_look, or migrate the product's old settings, then apply. Safe to call once at boot. */
+    init: function (legacy) {
+      var saved = read();
+      look = clean(saved || migrate(legacy));
+      if (!saved) write();
+      apply();
+      if (root.matchMedia) { var mql = root.matchMedia('(prefers-color-scheme: light)'); var h = function () { if (look.mode === 'system' || (look.mode === 'custom' && !look.bgCol)) apply(); }; if (mql.addEventListener) mql.addEventListener('change', h); else if (mql.addListener) mql.addListener(h); }
+      root.addEventListener('storage', function (e) { if (e.key === KEY && e.newValue) { look = clean(read()); apply(); } });
+      return look;
+    },
+    get: function () { return look || (look = clean(read())); },
+    lang: function () { return (API.get().lang) || detectLang(); },
+    /* set(patch, {silent}) — merge, persist, apply, and schedule a sync push */
+    set: function (patch, opts) {
+      var next = {};
+      for (var k in look) if (Object.prototype.hasOwnProperty.call(look, k)) next[k] = look[k];
+      for (var p in patch) if (Object.prototype.hasOwnProperty.call(patch, p)) next[p] = patch[p];
+      if (patch && (patch.bgCol || patch.lineCol || patch.textCol) && !patch.mode) next.mode = 'custom';
+      look = clean(next); write(); apply();
+      if (sync && !(opts && opts.silent)) { clearTimeout(saveT); saveT = setTimeout(function () { sync.save(look).catch(function () {}); }, 800); }
+      return look;
+    },
+    reset: function () { var lang = look.lang; look = clean({ lang: lang }); write(); apply(); if (sync) sync.save(look).catch(function () {}); return look; },
+    apply: apply,
+    onChange: function (fn) { listeners.push(fn); },
+    /* connect({ load: () => Promise<look|null>, save: (look) => Promise }) — the account road.
+       Pulls once: a newer remote record wins over this device; otherwise this device's look is pushed. */
+    connect: function (hooks) {
+      sync = hooks;
+      return hooks.load().then(function (remote) {
+        if (remote && typeof remote === 'object' && Object.keys(remote).length) { var mine = look; look = clean(remote); if (mine.lang && !look.lang) look.lang = mine.lang; write(); apply(); }
+        else return hooks.save(look);
+      }).catch(function () {});
+    },
+    disconnect: function () { sync = null; },
+
+    /* ---------------- settings panel — the same rows in every product ---------------- */
+    T: function (k) { var L = API.lang(); var d = API.DICT[L]; return (d && d[k]) || k; },
+    DICT: {
+      en: {},
+      ru: {
+        'Appearance': 'Оформление', 'Colour scheme': 'Цветовая схема', 'Dark': 'Тёмная', 'Light': 'Светлая', 'System': 'Системная', 'Liquid Glass': 'Liquid Glass', 'Custom': 'Своя',
+        'Background': 'Фон', 'Outlines': 'Контуры', 'Text': 'Текст', 'Accent': 'Акцент', 'Any colour': 'Любой цвет', 'Text size': 'Размер текста', 'Small': 'Мелкий', 'Medium': 'Средний', 'Large': 'Крупный',
+        'Corner rounding': 'Скругление углов', 'Cubic': 'Кубично', 'Round avatars': 'Круглые аватары', 'Uppercase labels': 'Подписи заглавными', 'Reduce motion': 'Меньше анимации',
+        'Wallpaper': 'Обои', 'Layout density': 'Плотность', 'Cozy': 'Просторно', 'Compact': 'Компактно', 'Interface language': 'Язык интерфейса',
+        'Reset appearance': 'Сбросить оформление', 'One appearance for every KONEKT product. Signed in, it follows your account.': 'Одно оформление для всех продуктов KONEKT. Войдя в аккаунт, вы забираете его с собой.',
+        'Low contrast — text may be hard to read.': 'Низкий контраст — текст может плохо читаться.', 'None': 'Нет', 'Aurora': 'Аврора', 'Ember': 'Уголь', 'Mono': 'Моно', 'Teal': 'Бирюза', 'Violet': 'Фиолет', 'Void': 'Пустота', 'Nebula': 'Туманность', 'Grid': 'Сетка', 'Orbit': 'Орбита',
+        'Sky': 'Небо', 'Mint': 'Мята', 'Rose': 'Роза', 'Gold': 'Золото', 'Ink': 'Чернила', 'Scheme, accent, text size and corners: the same everywhere.': 'Схема, акцент, размер текста и углы: везде одинаково.',
+      },
+    },
+    /* panel(opts) -> HTML. opts.rows: array of row ids to include (default all); opts.langs: show the language row. Uses the family's .set-* / .seg / .sw classes; styles() gives the CSS. */
+    panel: function (opts) {
+      opts = opts || {};
+      var s = API.get(), T = API.T, L = API.lang();
+      var rows = opts.rows || ['mode', 'colours', 'accent', 'fs', 'radius', 'avRound', 'caps', 'motion', 'wall', 'density', 'lang', 'reset'];
+      function seg(key, list){ return '<span class="seg" role="radiogroup">' + list.map(function (o) { return '<button class="' + (String(s[key]) === String(o[0]) ? 'on' : '') + '" data-look="' + key + '" data-val="' + o[0] + '" role="radio" aria-checked="' + (String(s[key]) === String(o[0])) + '">' + T(o[1]) + '</button>'; }).join('') + '</span>'; }
+      function sw(key, inv){ var on = inv ? !s[key] : !!s[key]; return '<button class="sw' + (on ? ' on' : '') + '" data-looksw="' + key + '" data-inv="' + (inv ? 1 : 0) + '" role="switch" aria-checked="' + on + '"><i></i></button>'; }
+      function row(title, desc, ctl, cls){ return '<div class="set-row' + (cls ? ' ' + cls : '') + '"><span class="set-m"><span class="set-t">' + T(title) + '</span>' + (desc ? '<span class="set-d">' + T(desc) + '</span>' : '') + '</span>' + ctl + '</div>'; }
+      function col(key, label){ var v = s[key]; return row(label, '', '<span class="set-side col-side">' + (v ? '<button class="btn-xs" data-lookclear="' + key + '">×</button>' : '') + '<input type="color" class="col-in" data-lookcol="' + key + '" value="' + (v || (key === 'bgCol' ? '#000000' : key === 'lineCol' ? '#434343' : '#ffffff')) + '" aria-label="' + T(label) + '"></span>'); }
+      var h = '<div class="look-panel">';
+      h += '<p class="set-note">' + T('One appearance for every KONEKT product. Signed in, it follows your account.') + '</p>';
+      if (rows.indexOf('mode') >= 0) h += row('Colour scheme', '', seg('mode', [['dark', 'Dark'], ['light', 'Light'], ['system', 'System'], ['glass', 'Liquid Glass'], ['custom', 'Custom']]));
+      if (rows.indexOf('colours') >= 0 && s.mode === 'custom') {
+        h += col('bgCol', 'Background') + col('lineCol', 'Outlines') + col('textCol', 'Text');
+        var bg = s.bgCol || '#000000', tx = s.textCol || (luma(bg) > 0.5 ? '#000000' : '#ffffff');
+        if (contrast(bg, tx) < 4.5) h += '<p class="set-note warn">' + T('Low contrast — text may be hard to read.') + '</p>';
+      }
+      if (rows.indexOf('accent') >= 0) h += row('Accent', '', '<span class="set-side col-side"><span class="swatches">' + ACCENTS.map(function (a) { return '<button class="swatch' + (s.accent === a[0] ? ' on' : '') + '" data-look="accent" data-val="' + a[0] + '" style="background:' + a[0] + '" title="' + T(a[1]) + '" aria-label="' + T(a[1]) + '"></button>'; }).join('') + '</span><input type="color" class="col-in" data-lookcol="accent" value="' + s.accent + '" aria-label="' + T('Any colour') + '"></span>');
+      if (rows.indexOf('fs') >= 0) h += row('Text size', '', seg('fs', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']]));
+      if (rows.indexOf('radius') >= 0) h += row('Corner rounding', '', '<span class="set-side"><input type="range" class="rng" data-lookrange="radius" min="0" max="24" step="2" value="' + s.radius + '" aria-label="' + T('Corner rounding') + '"><b class="rng-v">' + (s.radius ? s.radius + 'px' : T('Cubic')) + '</b></span>');
+      if (rows.indexOf('avRound') >= 0) h += row('Round avatars', '', sw('avRound'));
+      if (rows.indexOf('caps') >= 0) h += row('Uppercase labels', '', sw('caps'));
+      if (rows.indexOf('motion') >= 0) h += row('Reduce motion', '', sw('motion', true));
+      if (rows.indexOf('wall') >= 0) h += row('Wallpaper', '', '<span class="set-side walls">' + Object.keys(WALLS).map(function (w) { return '<button class="wall' + (s.wall === w ? ' on' : '') + '" data-look="wall" data-val="' + w + '" style="background:' + (WALLS[w] || 'var(--bg)') + '" title="' + T(WALL_NAMES[w]) + '" aria-label="' + T(WALL_NAMES[w]) + '"></button>'; }).join('') + '</span>');
+      if (rows.indexOf('density') >= 0) h += row('Layout density', '', seg('density', [['cozy', 'Cozy'], ['compact', 'Compact']]));
+      if (rows.indexOf('lang') >= 0 && opts.langs !== false) h += row('Interface language', '', '<span class="seg" role="radiogroup"><button class="' + (L === 'en' ? 'on' : '') + '" data-look="lang" data-val="en">EN</button><button class="' + (L === 'ru' ? 'on' : '') + '" data-look="lang" data-val="ru">RU</button></span>');
+      if (rows.indexOf('reset') >= 0) h += '<div class="set-row"><button class="btn-xs danger" data-lookreset="1">' + T('Reset appearance') + '</button></div>';
+      return h + '</div>';
+    },
+    /* wire(rootEl, onChange) — delegated handlers for the panel. onChange(look) is called after every change (re-render the panel there). */
+    wire: function (el, onChange) {
+      if (!el || el.__lookWired) return; el.__lookWired = true;
+      var done = function () { if (onChange) onChange(API.get()); };
+      el.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-look],[data-looksw],[data-lookclear],[data-lookreset]');
+        if (!b) return;
+        if (b.dataset.look) { var o1 = {}; o1[b.dataset.look] = b.dataset.look === 'radius' ? Number(b.dataset.val) : b.dataset.val; API.set(o1); done(); }
+        else if (b.dataset.looksw) { var k = b.dataset.looksw; var o = {}; o[k] = !API.get()[k]; API.set(o); done(); }
+        else if (b.dataset.lookclear) { var o2 = {}; o2[b.dataset.lookclear] = ''; API.set(o2); done(); }
+        else if (b.dataset.lookreset) { API.reset(); done(); }
+      });
+      el.addEventListener('input', function (e) {
+        var t = e.target;
+        if (t.dataset && t.dataset.lookcol) { var o = {}; o[t.dataset.lookcol] = t.value; API.set(o); }
+        else if (t.dataset && t.dataset.lookrange) { var o3 = {}; o3[t.dataset.lookrange] = Number(t.value); API.set(o3); var v = el.querySelector('.rng-v'); if (v) v.textContent = Number(t.value) ? t.value + 'px' : API.T('Cubic'); }
+      });
+      el.addEventListener('change', function (e) { var t = e.target; if (t.dataset && (t.dataset.lookcol || t.dataset.lookrange)) done(); });
+    },
+    /* styles() — the CSS every product needs for the panel and the universal attributes. Inject once. */
+    styles: function () {
+      return [
+        ':root{--accent:#1d9bf0;--radius:0px;--av-radius:0px}',
+        ':root[data-fs="s"]{--fs:12.5px}:root[data-fs="l"]{--fs:15.5px}',
+        ':root[data-motion="off"] *,:root[data-motion="off"] *::before,:root[data-motion="off"] *::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}',
+        ':root{--glass-blur:26px;--glass-bg:rgba(20,20,26,.55);--glass-brd:rgba(255,255,255,.10)}:root[data-theme="light"]{--glass-bg:rgba(250,250,252,.6);--glass-brd:rgba(0,0,0,.08)}',
+        ':root[data-wall-on="1"] body{background:var(--wall) fixed;background-size:cover}',
+        '.look-panel .set-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-3);flex-wrap:wrap}.look-panel .set-row:last-child{border-bottom:0}',
+        '.look-panel .set-m{flex:1;min-width:120px}.look-panel .set-t{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;display:block}.look-panel .set-d{font-size:11px;color:var(--dim);margin-top:3px;display:block}',
+        '.look-panel .set-side{flex:0 1 auto;max-width:100%;min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap}.look-panel .set-note{font-size:11.5px;color:var(--dim);line-height:1.55;padding:6px 0 10px}.look-panel .set-note.warn{color:var(--warn)}',
+        '.look-panel .seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;max-width:100%;flex-wrap:wrap}.look-panel .seg button{padding:8px 11px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);border-right:1px solid var(--line);background:none;border-top:0;border-bottom:0;border-left:0;cursor:pointer;font-family:inherit;min-height:36px}.look-panel .seg button:last-child{border-right:0}.look-panel .seg button.on{background:var(--text);color:var(--bg)}',
+        '.look-panel .sw{width:40px;height:22px;border:1px solid var(--line);padding:2px;display:flex;background:none;cursor:pointer;border-radius:var(--radius)}.look-panel .sw i{width:16px;height:16px;background:var(--dim);transition:transform .14s ease,background .14s linear;display:block;border-radius:var(--radius)}.look-panel .sw.on{border-color:var(--accent)}.look-panel .sw.on i{transform:translateX(18px);background:var(--accent)}',
+        '.look-panel .rng{width:120px;accent-color:var(--accent)}.look-panel .rng-v{font-size:10.5px;color:var(--dim);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}',
+        '.look-panel .col-in{width:38px;height:28px;padding:0;border:1px solid var(--line);background:transparent;cursor:pointer;border-radius:var(--radius)}',
+        '.look-panel .swatches{display:inline-flex;gap:6px}.look-panel .swatch{width:22px;height:22px;border:1px solid var(--line);cursor:pointer;border-radius:var(--radius);padding:0}.look-panel .swatch.on{outline:2px solid var(--text);outline-offset:2px}',
+        '.look-panel .walls{display:flex;gap:6px;flex-wrap:wrap;max-width:100%}.look-panel .wall{width:34px;height:22px;border:1px solid var(--line);cursor:pointer;border-radius:var(--radius);padding:0}.look-panel .wall.on{outline:2px solid var(--text);outline-offset:2px}.look-panel .swatches{flex-wrap:wrap;max-width:100%}',
+        '.look-panel .btn-xs{border:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:6px 10px;cursor:pointer;border-radius:var(--radius);min-height:32px}.look-panel .btn-xs.danger{color:var(--danger);border-color:var(--danger)}',
+        ':root[data-caps="off"] .look-panel .set-t,:root[data-caps="off"] .look-panel .seg button,:root[data-caps="off"] .look-panel .btn-xs{text-transform:none;letter-spacing:0}',
+      ].join('\n');
+    },
+    injectStyles: function () { if (root.document.getElementById('konekt-look-css')) return; var s = root.document.createElement('style'); s.id = 'konekt-look-css'; s.textContent = API.styles(); root.document.head.appendChild(s); },
+  };
+  root.KONEKT_LOOK = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* KONEKT LOOK boots first — before the stylesheet, so the module's rules sit beneath
+   this file's own and the first paint already wears your scheme. The site's old
+   kos.site.lang key is read once to seed the universal look; never written again. */
+(function(){
+  var legacy = null;
+  try { var l = localStorage.getItem('kos.site.lang'); if (l === 'ru' || l === 'en') legacy = { lang: l }; } catch (e) {}
+  KONEKT_LOOK.injectStyles();
+  KONEKT_LOOK.init(legacy);
+})();
+</script>
 <style>
 /* ============ KONEKT tokens — black, cubic, hairlines ============ */
 :root{
@@ -21,6 +305,7 @@
   --line-3:#232323;
   --text:#ffffff;
   --text-2:#d8d8d8;
+  --btn-h:#d6d6d6;
   --dim:#999999;
   --dim-2:#6f6f6f;
   --accent:#1d9bf0;
@@ -29,8 +314,44 @@
   --danger:#f4212e;
   --font:'Montserrat','Segoe UI',Arial,Helvetica,sans-serif;
   --mono:'Cascadia Mono','Consolas',ui-monospace,'Menlo',monospace;
+  --fs:15px;           /* base type size — KONEKT LOOK: text size S/M/L */
+  --radius:0px;        /* cubic by default; KONEKT LOOK can soften it, 0–24px */
+  --av-radius:0px;
   color-scheme:dark;
 }
+/* ---- the family's light scheme, the same tokens as KOUCH — KONEKT LOOK resolves Light/System to data-theme ---- */
+:root[data-theme="light"]{
+  --bg:#ffffff;
+  --hover:#f3f3f3;
+  --hover-2:#e8e8e8;
+  --line:#c4c4c4;
+  --line-2:#8c8c8c;
+  --line-3:#e2e2e2;
+  --text:#000000;
+  --text-2:#333333;
+  --btn-h:#2b2b2b;
+  --dim:#5c5c5c;
+  --dim-2:#8a8a8a;
+  color-scheme:light;
+}
+/* ---- the universal KONEKT LOOK attributes this sheet honours ---- */
+:root[data-fs="s"]{--fs:13.5px}
+:root[data-fs="l"]{--fs:16.5px}
+:root[data-motion="off"]{scroll-behavior:auto}
+:root[data-caps="off"] #top nav a,:root[data-caps="off"] .btn-solid,:root[data-caps="off"] .btn-line,:root[data-caps="off"] .badge,
+:root[data-caps="off"] h1,:root[data-caps="off"] h2,:root[data-caps="off"] h3,:root[data-caps="off"] .r-left,:root[data-caps="off"] .legend span,
+:root[data-caps="off"] .f-fam span,:root[data-caps="off"] #demoBar,:root[data-caps="off"] #demoFrame .shield .t,:root[data-caps="off"] .p-demo .type,
+:root[data-caps="off"] .pop-h{text-transform:none;letter-spacing:.02em}
+/* Liquid Glass — the strip, the cards and the popover frost over the wallpaper KONEKT LOOK paints on <body> */
+:root[data-appearance="glass"] #top,:root[data-appearance="glass"] .why,:root[data-appearance="glass"] .a-card,
+:root[data-appearance="glass"] .p-cell,:root[data-appearance="glass"] #lookPop{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  border-color:var(--glass-brd);
+}
+:root[data-appearance="glass"] .grid3,:root[data-appearance="glass"] .arch,:root[data-appearance="glass"] .prin{background:var(--glass-brd);border-color:var(--glass-brd)}
+:root[data-appearance="glass"] .a-card:hover{background:var(--glass-bg)}
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){
@@ -39,7 +360,7 @@ html{scroll-behavior:smooth}
 }
 body{
   margin:0;background:var(--bg);color:var(--text);
-  font-family:var(--font);font-size:15px;line-height:1.55;font-weight:400;
+  font-family:var(--font);font-size:var(--fs);line-height:1.55;font-weight:400;
   -webkit-font-smoothing:antialiased;
 }
 a{color:var(--accent);text-decoration:none}
@@ -56,6 +377,7 @@ img,svg{display:block}
   position:sticky;top:0;z-index:100;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line-3);
 }
+:root[data-theme="light"] #top{background:rgba(255,255,255,.92)}
 #top .row{display:flex;align-items:center;gap:26px;height:56px}
 #top nav{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
 #top nav::-webkit-scrollbar{display:none}
@@ -64,46 +386,69 @@ img,svg{display:block}
   padding:8px 12px;white-space:nowrap;
 }
 #top nav a:hover{color:var(--text);background:var(--hover-2);text-decoration:none}
-.lang{display:flex;border:1px solid var(--line-2)}
+.lang{display:flex;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden}
 .lang button{
   padding:6px 11px;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--dim);
 }
 .lang button+button{border-left:1px solid var(--line-2)}
 .lang button.on{background:var(--text);color:var(--bg)}
 .lang button:not(.on):hover{color:var(--text)}
+/* the appearance button — a ghost square next to the language switch */
+.ghost{
+  width:34px;height:34px;border:1px solid var(--line-2);display:inline-flex;align-items:center;justify-content:center;
+  color:var(--dim);flex:none;border-radius:var(--radius);
+}
+.ghost:hover,.ghost[aria-expanded="true"]{color:var(--text);background:var(--hover-2)}
+.ghost svg{width:16px;height:16px}
+#lookPop{
+  position:fixed;top:66px;right:max(12px,calc((100vw - 1080px) / 2 + 22px));z-index:120;
+  width:min(460px,calc(100vw - 24px));max-height:calc(100vh - 84px);overflow-y:auto;
+  background:var(--bg);border:1px solid var(--line-2);padding:12px 18px 8px;display:none;
+  border-radius:var(--radius);box-shadow:0 18px 50px rgba(0,0,0,.45);
+}
+#lookPop.open{display:block}
+.pop-h{
+  display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--line-3);
+  font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+}
+.pop-x{font-size:18px;line-height:1;color:var(--dim);padding:2px 6px}
+.pop-x:hover{color:var(--text)}
 .btn-solid{
   background:var(--text);color:var(--bg);font-weight:700;font-size:10.5px;
   letter-spacing:.14em;text-transform:uppercase;padding:11px 20px;display:inline-block;text-align:center;
+  border-radius:var(--radius);
 }
-.btn-solid:hover{background:#d6d6d6;text-decoration:none;color:var(--bg)}
+.btn-solid:hover{background:var(--btn-h);text-decoration:none;color:var(--bg)}
 .btn-line{
   border:1px solid var(--line-2);color:var(--text);font-weight:700;font-size:10.5px;
   letter-spacing:.14em;text-transform:uppercase;padding:11px 20px;display:inline-block;text-align:center;
+  border-radius:var(--radius);
 }
 .btn-line:hover{background:var(--hover-2);text-decoration:none}
 
 /* ============ hero ============ */
 #hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line-3)}
 #heroGlobe{position:absolute;right:-140px;bottom:-180px;color:#131313;pointer-events:none}
+:root[data-theme="light"] #heroGlobe{color:#ececec}
 #hero .inner{position:relative;padding:92px 0 70px}
 .badge{
   display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
   padding:7px 13px;font-size:9.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
-  margin-bottom:30px;
+  margin-bottom:30px;border-radius:var(--radius);
 }
 .badge i{width:6px;height:6px;background:var(--repost);display:block}
 h1{
   margin:0 0 22px;font-size:clamp(34px,6.2vw,64px);line-height:1.04;font-weight:800;letter-spacing:.01em;
   text-transform:uppercase;max-width:820px;
 }
-.sub{max-width:640px;color:var(--dim);font-size:clamp(15px,1.8vw,17.5px);line-height:1.65;margin:0 0 38px}
+.sub{max-width:640px;color:var(--dim);font-size:clamp(var(--fs),1.8vw,calc(var(--fs) + 2.5px));line-height:1.65;margin:0 0 38px}
 .cta-row{display:flex;gap:12px;flex-wrap:wrap}
 
 /* demo frame */
 #demoWrap{margin:76px auto 0;max-width:960px}
 #demoFrame{
   border:1px solid var(--line-2);background:#000;position:relative;overflow:hidden;
-  aspect-ratio:16/10;
+  aspect-ratio:16/10;border-radius:var(--radius);
 }
 #demoFrame .shield{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -131,36 +476,38 @@ section{border-bottom:1px solid var(--line-3)}
 h2{
   margin:0;font-size:clamp(22px,3.4vw,34px);font-weight:800;letter-spacing:.03em;text-transform:uppercase;
 }
-.sec-sub{max-width:680px;color:var(--dim);margin:-30px 0 46px;font-size:15px;line-height:1.65}
+.sec-sub{max-width:680px;color:var(--dim);margin:-30px 0 46px;font-size:var(--fs);line-height:1.65}
 
 /* why */
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3);border-radius:var(--radius);overflow:hidden}
 .why{background:var(--bg);padding:30px 26px}
 .why .n{font-size:clamp(30px,4vw,44px);font-weight:800;line-height:1;margin-bottom:14px}
 .why .n em{font-style:normal;color:var(--dim-2)}
 .why h3{margin:0 0 10px;font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.why p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.65}
+.why p{margin:0;color:var(--dim);font-size:calc(var(--fs) - 1.5px);line-height:1.65}
 
 /* architecture */
-.arch{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3)}
+.arch{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3);border-radius:var(--radius);overflow:hidden}
 .a-card{background:var(--bg);padding:28px 26px;display:flex;flex-direction:column;gap:12px}
 .a-card:hover{background:var(--hover)}
 .a-top{display:flex;align-items:center;gap:14px}
-.a-ic{width:38px;height:38px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text);flex:none}
+.a-ic{width:38px;height:38px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text);flex:none;border-radius:var(--radius)}
 .a-ic svg{width:18px;height:18px}
 .a-card h3{margin:0;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 .a-card .tag{font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.04em}
-.a-card p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.7}
+.a-card p{margin:0;color:var(--dim);font-size:calc(var(--fs) - 1.5px);line-height:1.7}
 .a-card p b{color:var(--text-2);font-weight:600}
 
 /* design principles */
-.prin{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3)}
+.prin{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-3);border:1px solid var(--line-3);border-radius:var(--radius);overflow:hidden}
 .p-cell{background:var(--bg);padding:26px 22px}
 .p-cell h3{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.p-cell p{margin:0;color:var(--dim);font-size:12.5px;line-height:1.6}
-.p-demo{margin-top:46px;border:1px solid var(--line-3);padding:34px;display:flex;gap:40px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.p-cell p{margin:0;color:var(--dim);font-size:calc(var(--fs) - 2.5px);line-height:1.6}
+.p-demo{margin-top:46px;border:1px solid var(--line-3);padding:34px;display:flex;gap:40px;align-items:center;flex-wrap:wrap;justify-content:space-between;border-radius:var(--radius)}
 .p-demo .sw{display:flex;gap:10px}
-.p-demo .sw i{width:26px;height:26px;display:block}
+.p-demo .sw i{width:26px;height:26px;display:block;border:1px solid var(--line-3);border-radius:var(--radius)}
+#prinGlobe{color:#2c2c2c}
+:root[data-theme="light"] #prinGlobe{color:#d4d4d4}
 .p-demo .type{font-size:26px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1.15}
 .p-demo .type span{display:block;font-size:10px;font-weight:700;letter-spacing:.22em;color:var(--dim-2);margin-top:8px}
 
@@ -168,7 +515,7 @@ h2{
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
   border:1px solid var(--line);padding:9px 15px;font-size:11.5px;font-weight:600;
-  letter-spacing:.06em;color:var(--text-2);display:inline-flex;align-items:center;gap:8px;
+  letter-spacing:.06em;color:var(--text-2);display:inline-flex;align-items:center;gap:8px;border-radius:var(--radius);
 }
 .chip i{width:5px;height:5px;background:var(--repost);display:block;flex:none}
 .chip.web i{background:var(--accent)}
@@ -176,10 +523,10 @@ h2{
 .legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:20px}
 .legend span{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim-2)}
 .legend i{width:5px;height:5px;display:block}
-.note{margin-top:26px;border-left:2px solid var(--line);padding:4px 0 4px 18px;color:var(--dim);font-size:13px;line-height:1.7;max-width:680px}
+.note{margin-top:26px;border-left:2px solid var(--line);padding:4px 0 4px 18px;color:var(--dim);font-size:calc(var(--fs) - 2px);line-height:1.7;max-width:680px}
 
 /* roadmap */
-.road{border:1px solid var(--line-3)}
+.road{border:1px solid var(--line-3);border-radius:var(--radius);overflow:hidden}
 .r-row{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--line-3)}
 .r-row:last-child{border-bottom:0}
 .r-left{
@@ -192,27 +539,27 @@ h2{
 .r-row.now .r-left i{background:var(--warn)}
 .r-main{padding:24px 26px}
 .r-main h3{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
-.r-main p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.7;max-width:720px}
+.r-main p{margin:0;color:var(--dim);font-size:calc(var(--fs) - 1.5px);line-height:1.7;max-width:720px}
 
 /* faq */
-.faq{border:1px solid var(--line-3)}
+.faq{border:1px solid var(--line-3);border-radius:var(--radius);overflow:hidden}
 .q{border-bottom:1px solid var(--line-3)}
 .q:last-child{border-bottom:0}
 .q>button{
   width:100%;display:flex;justify-content:space-between;align-items:center;gap:20px;
-  padding:20px 24px;text-align:left;font-size:14px;font-weight:600;letter-spacing:.02em;
+  padding:20px 24px;text-align:left;font-size:calc(var(--fs) - 1px);font-weight:600;letter-spacing:.02em;
 }
 .q>button:hover{background:var(--hover)}
 .q>button .x{font-family:var(--mono);color:var(--dim-2);flex:none;transition:transform .18s}
 .q.open>button .x{transform:rotate(45deg)}
-.q .a{display:none;padding:0 24px 22px;color:var(--dim);font-size:13.5px;line-height:1.75;max-width:760px}
+.q .a{display:none;padding:0 24px 22px;color:var(--dim);font-size:calc(var(--fs) - 1.5px);line-height:1.75;max-width:760px}
 .q.open .a{display:block}
 
 /* footer */
 footer{padding:60px 0 80px;color:var(--dim-2)}
 .f-grid{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap}
 .f-fam{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;max-width:420px}
-.f-fam span{border:1px solid var(--line-3);padding:5px 10px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim-2)}
+.f-fam span{border:1px solid var(--line-3);padding:5px 10px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim-2);border-radius:var(--radius)}
 .f-right{text-align:right;font-size:11.5px;line-height:2}
 footer .lg{color:var(--text)}
 .f-note{margin-top:34px;padding-top:22px;border-top:1px solid var(--line-3);font-size:10.5px;letter-spacing:.06em;line-height:1.8}
@@ -251,9 +598,14 @@ footer .lg{color:var(--text)}
     <div class="lang" role="group" aria-label="Язык / Language">
       <button id="lRu" class="on">RU</button><button id="lEn">EN</button>
     </div>
+    <button class="ghost" id="lookBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="lookPop" title="Appearance"></button>
     <a class="btn-solid" href="demo.html" data-i18n="nav_demo">Демо</a>
   </div>
 </header>
+<div id="lookPop" role="dialog" aria-labelledby="lookPopT">
+  <div class="pop-h"><span id="lookPopT">Appearance</span><button class="pop-x" id="lookClose" aria-label="Close">×</button></div>
+  <div id="lookPanel"></div>
+</div>
 
 <div id="hero">
   <div id="heroGlobe"></div>
@@ -370,7 +722,7 @@ footer .lg{color:var(--text)}
       <div class="sw" aria-hidden="true">
         <i style="background:#ffffff"></i><i style="background:#1d9bf0"></i><i style="background:#00ba7c"></i><i style="background:#ffd400"></i><i style="background:#f91880"></i><i style="background:#f4212e"></i>
       </div>
-      <div id="prinGlobe" style="color:#2c2c2c"></div>
+      <div id="prinGlobe"></div>
     </div>
   </div>
 </section>
@@ -475,7 +827,7 @@ footer .lg{color:var(--text)}
       <div>
         <span class="lg" style="font-size:22px" id="markF"></span>
         <div class="f-fam">
-          <span>KONEKT</span><span>KRYPTO</span><span>BROWSER</span><span>MAIL</span><span>KLOUD</span><span>KONTAINER</span><span>OS</span>
+          <span>KONEKT</span><span>KRYPTO</span><span>BROWSER</span><span>MAIL</span><span>KLOUD</span><span>KONTAINER</span><span>OS</span><span>KOUCH</span>
         </div>
       </div>
       <div class="f-right">
@@ -630,7 +982,9 @@ const I18N = {
   f_n1:      { ru:'NKO Intl. Foundation of Technological Research &amp; Development · KONEKT HOLDING', en:'NKO Intl. Foundation of Technological Research &amp; Development · KONEKT HOLDING' },
   f_n2:      { ru:'Сделано в KONEKT.WORLD · Ничего из того, что вы делаете на этой странице, её не покидает.', en:'Made in KONEKT.WORLD · Nothing you do on this page ever leaves it.' }
 };
-let lang = (function(){ try{ return localStorage.getItem('kos.site.lang') || 'ru'; }catch(e){ return 'ru'; } })();
+/* The RU/EN switch is the family's: it writes KONEKT_LOOK's lang, and the universal look's
+   language (from any KONEKT product signed into the same look) drives this page. */
+let lang = KONEKT_LOOK.lang();
 function applyLang(){
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -643,9 +997,34 @@ function applyLang(){
     ? 'KONEKT OS — российская настольная операционная система'
     : 'KONEKT OS — a Russian desktop operating system';
 }
-document.getElementById('lRu').onclick = () => { lang = 'ru'; try{ localStorage.setItem('kos.site.lang', lang); }catch(e){} applyLang(); };
-document.getElementById('lEn').onclick = () => { lang = 'en'; try{ localStorage.setItem('kos.site.lang', lang); }catch(e){} applyLang(); };
+document.getElementById('lRu').onclick = () => KONEKT_LOOK.set({ lang: 'ru' });
+document.getElementById('lEn').onclick = () => KONEKT_LOOK.set({ lang: 'en' });
+KONEKT_LOOK.onChange(() => {
+  const nl = KONEKT_LOOK.lang();
+  if(nl !== lang){ lang = nl; applyLang(); renderLookPop(); }
+});
 applyLang();
+
+/* ---------- appearance: the universal KONEKT LOOK panel in a popover under the strip ---------- */
+const LOOK_ROWS = { rows: ['mode', 'colours', 'accent', 'fs', 'radius', 'caps', 'motion', 'wall', 'reset'] };
+const lookBtn = document.getElementById('lookBtn'), lookPop = document.getElementById('lookPop'), lookPanel = document.getElementById('lookPanel');
+lookBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9" cy="7.5" r="1.9" fill="var(--bg)"/><circle cx="15" cy="12" r="1.9" fill="var(--bg)"/><circle cx="7" cy="16.5" r="1.9" fill="var(--bg)"/></svg>';
+function renderLookPop(){
+  document.getElementById('lookPopT').textContent = KONEKT_LOOK.T('Appearance');
+  lookBtn.title = KONEKT_LOOK.T('Appearance');
+  if(lookPop.classList.contains('open')) lookPanel.innerHTML = KONEKT_LOOK.panel(LOOK_ROWS);
+}
+function openLook(on){
+  lookPop.classList.toggle('open', on);
+  lookBtn.setAttribute('aria-expanded', String(on));
+  if(on) lookPanel.innerHTML = KONEKT_LOOK.panel(LOOK_ROWS);
+}
+KONEKT_LOOK.wire(lookPanel, () => { lookPanel.innerHTML = KONEKT_LOOK.panel(LOOK_ROWS); });
+lookBtn.addEventListener('click', e => { e.stopPropagation(); openLook(!lookPop.classList.contains('open')); });
+document.getElementById('lookClose').addEventListener('click', () => openLook(false));
+document.addEventListener('click', e => { if(lookPop.classList.contains('open') && !lookPop.contains(e.target)) openLook(false); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && lookPop.classList.contains('open')) openLook(false); });
+renderLookPop();
 
 /* ---------- demo embed: lazy boot on click, scaled to fit ---------- */
 const demoFrameBox = document.getElementById('demoFrame');

@@ -8,6 +8,296 @@
 <meta name="theme-color" content="#000000">
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-56 -56 112 112"><rect x="-56" y="-56" width="112" height="112" fill="black"/><g fill="none" stroke="white" stroke-width="7.4"><circle r="50"/><ellipse rx="18" ry="50"/><ellipse rx="36.5" ry="50"/><line y1="-50" y2="50"/><line x1="-48.7" y1="0" x2="48.7" y2="0"/><line x1="-43.8" y1="21.5" x2="43.8" y2="21.5"/><line x1="-43.8" y1="-21.5" x2="43.8" y2="-21.5"/></g></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<!-- KONEKT LOOK — shared verbatim from konekt-kouch/public/konekt-look.js; do not edit here -->
+<script>
+/* =====================================================================
+   KONEKT LOOK — one appearance for the whole family.
+   ---------------------------------------------------------------------
+   Every KONEKT product ships this file verbatim (inlined or linked). It
+   owns the appearance settings, the colour maths, the CSS variables and
+   data-attributes every product already reads, the migration from each
+   product's old keys, the settings panel markup, and the hooks a product
+   uses to sync the look through the account.
+
+   The settings object (KONEKT_LOOK.get()):
+     mode     'dark' | 'light' | 'system' | 'glass' | 'custom'
+     bgCol, lineCol, textCol   '' or #rrggbb   (custom mode; picking one forces custom)
+     accent   #rrggbb                           (seven presets + any colour)
+     fs       's' | 'm' | 'l'                   (text size)
+     radius   0..24                             (px, step 2; 0 = cubic)
+     avRound  boolean                           (round avatars)
+     caps     boolean                           (uppercase labels)
+     motion   boolean                           (false = reduced)
+     wall     'none' | aurora | ember | mono | teal | violet | void | nebula | grid | orbit
+     density  'cozy' | 'compact'
+     lang     'en' | 'ru'                       (interface language)
+
+   What it writes on <html>:
+     data-theme=dark|light (resolved), data-appearance=<mode>, data-fs, data-caps=on|off,
+     data-motion=on|off, data-round=full|square (avatars), data-density, data-wall-on=1|0,
+     data-lang, lang=; and the variables --accent, --radius, --av-radius, --wall, plus
+     --bg/--hover/--hover-2/--line/--line-2/--line-3/--text in custom mode.
+   Storage: localStorage 'konekt_look' (same key in every product). Sync: connect().
+   ===================================================================== */
+(function (root) {
+  'use strict';
+  var KEY = 'konekt_look';
+  var DEFAULTS = {
+    mode: 'dark', bgCol: '', lineCol: '', textCol: '', accent: '#1d9bf0',
+    fs: 'm', radius: 0, avRound: false, caps: true, motion: true,
+    wall: 'none', density: 'cozy', lang: '',
+  };
+  var ACCENTS = [
+    ['#1d9bf0', 'Sky'], ['#00ba7c', 'Mint'], ['#f91880', 'Rose'], ['#ffd400', 'Gold'],
+    ['#a970ff', 'Violet'], ['#ff6a00', 'Ember'], ['#ffffff', 'Ink'],
+  ];
+  var WALLS = {
+    none: '',
+    aurora: 'radial-gradient(120% 120% at 20% 0%, #10233b 0%, #0a0a12 45%, #000 100%), radial-gradient(90% 90% at 100% 100%, #241033 0%, transparent 60%)',
+    ember: 'radial-gradient(120% 120% at 0% 0%, #2a0f0f 0%, #0a0708 45%, #000 100%), radial-gradient(90% 90% at 100% 30%, #3a1d05 0%, transparent 60%)',
+    mono: 'radial-gradient(120% 120% at 50% 0%, #1a1a1a 0%, #0a0a0a 50%, #000 100%)',
+    teal: 'radial-gradient(120% 120% at 15% 10%, #06272b 0%, #06131a 45%, #000 100%), radial-gradient(80% 80% at 100% 100%, #0b3a2e 0%, transparent 60%)',
+    violet: 'radial-gradient(120% 120% at 80% 0%, #1a1040 0%, #0a0816 45%, #000 100%), radial-gradient(90% 90% at 0% 100%, #3a0f36 0%, transparent 60%)',
+    void: 'radial-gradient(100% 100% at 50% 50%, #050505 0%, #000 100%)',
+    nebula: 'radial-gradient(60% 80% at 30% 20%, #1b1037 0%, transparent 60%), radial-gradient(50% 60% at 75% 70%, #0b2a3a 0%, transparent 60%), #000',
+    grid: 'linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px) 0 0/40px 40px, linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px) 0 0/40px 40px, #000',
+    orbit: 'radial-gradient(circle at 50% 120%, rgba(29,155,240,.25) 0%, transparent 55%), #000',
+  };
+  var WALL_NAMES = { none: 'None', aurora: 'Aurora', ember: 'Ember', mono: 'Mono', teal: 'Teal', violet: 'Violet', void: 'Void', nebula: 'Nebula', grid: 'Grid', orbit: 'Orbit' };
+
+  /* ---------------- colour maths — identical in every product ---------------- */
+  function hex2rgb(h){ h = String(h || '').trim(); var m = /^#?([0-9a-f]{6})$/i.exec(h); if (!m) { var s = /^#?([0-9a-f]{3})$/i.exec(h); if (!s) return null; m = [0, s[1][0] + s[1][0] + s[1][1] + s[1][1] + s[1][2] + s[1][2]]; } var n = parseInt(m[1], 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function rgb2hex(c){ return '#' + c.map(function (v) { return ('0' + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2); }).join(''); }
+  function luma(h){ var c = hex2rgb(h); return c ? (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 : 0; }
+  function mixHex(a, b, t){ var x = hex2rgb(a), y = hex2rgb(b); if (!x || !y) return a; return rgb2hex([0, 1, 2].map(function (i) { return x[i] + (y[i] - x[i]) * t; })); }
+  function contrast(a, b){ var la = luma(a), lb = luma(b); var hi = Math.max(la, lb), lo = Math.min(la, lb); return (hi + 0.05) / (lo + 0.05); }
+  function prefersLight(){ return !!(root.matchMedia && root.matchMedia('(prefers-color-scheme: light)').matches); }
+
+  /* ---------------- state ---------------- */
+  var look = null, listeners = [], sync = null, saveT = null;
+  function clean(o){
+    var out = {};
+    for (var k in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, k)) out[k] = DEFAULTS[k];
+    if (!o || typeof o !== 'object') return out;
+    if (['dark', 'light', 'system', 'glass', 'custom'].indexOf(o.mode) >= 0) out.mode = o.mode;
+    ['bgCol', 'lineCol', 'textCol'].forEach(function (k) { out[k] = hex2rgb(o[k]) ? rgb2hex(hex2rgb(o[k])) : ''; });
+    out.accent = hex2rgb(o.accent) ? rgb2hex(hex2rgb(o.accent)) : DEFAULTS.accent;
+    if (['s', 'm', 'l'].indexOf(o.fs) >= 0) out.fs = o.fs;
+    var r = Number(o.radius); if (isFinite(r)) out.radius = Math.max(0, Math.min(24, Math.round(r / 2) * 2));
+    if (typeof o.avRound === 'boolean') out.avRound = o.avRound; else if (o.avRound === 'on' || o.avRound === 'off') out.avRound = o.avRound === 'on';
+    if (typeof o.caps === 'boolean') out.caps = o.caps; else if (o.caps === 'on' || o.caps === 'off') out.caps = o.caps === 'on';
+    if (typeof o.motion === 'boolean') out.motion = o.motion; else if (o.motion === 'on' || o.motion === 'off') out.motion = o.motion === 'on';
+    if (WALLS.hasOwnProperty(o.wall)) out.wall = o.wall;
+    if (o.density === 'compact' || o.density === 'cozy') out.density = o.density;
+    if (o.lang === 'en' || o.lang === 'ru') out.lang = o.lang;
+    for (var k2 in o) if (Object.prototype.hasOwnProperty.call(o, k2) && !(k2 in out)) out[k2] = o[k2];   /* keep what a newer product wrote */
+    return out;
+  }
+  function read(){ try { return JSON.parse(root.localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } }
+  function write(){ try { root.localStorage.setItem(KEY, JSON.stringify(look)); } catch (e) {} }
+
+  /* ---------------- migration from every product's old keys ----------------
+     Runs once, only when konekt_look is absent. Each product passes what it
+     used to store; whatever it recognises becomes the first universal look. */
+  function migrate(legacy){
+    var o = {};
+    if (!legacy) return o;
+    var mode = legacy.mode || legacy.theme;
+    if (mode === 'geek') mode = 'dark';
+    if (mode === '' ) mode = 'dark';
+    if (mode) o.mode = mode;
+    if (legacy.accent) o.accent = legacy.accent;
+    ['bgCol', 'lineCol', 'textCol'].forEach(function (k) { if (legacy[k]) o[k] = legacy[k]; });
+    if (legacy.fs) o.fs = legacy.fs;
+    if (legacy.radius !== undefined) o.radius = Number(legacy.radius) || 0;
+    else if (legacy.round) o.radius = { cubic: 0, soft: 6, round: 12 }[legacy.round] || 0;
+    if (legacy.avRound !== undefined) o.avRound = legacy.avRound === true || legacy.avRound === 'on';
+    if (legacy.caps !== undefined) o.caps = legacy.caps === true || legacy.caps === 'on';
+    if (legacy.motion !== undefined) o.motion = legacy.motion === true || legacy.motion === 'on';
+    if (legacy.wall || legacy.wallpaper) { var w = legacy.wall || legacy.wallpaper; if (WALLS.hasOwnProperty(w)) o.wall = w; }
+    if (legacy.density) o.density = legacy.density;
+    if (legacy.lang === 'ru' || legacy.lang === 'en') o.lang = legacy.lang;
+    return o;
+  }
+
+  /* ---------------- apply ---------------- */
+  function apply(){
+    var r = root.document.documentElement, s = look;
+    var base = s.mode === 'light' ? 'light' : s.mode === 'dark' || s.mode === 'glass' ? 'dark' : s.mode === 'system' ? (prefersLight() ? 'light' : 'dark')
+      : (s.bgCol ? (luma(s.bgCol) > 0.5 ? 'light' : 'dark') : (prefersLight() ? 'light' : 'dark'));
+    r.setAttribute('data-theme', base);
+    r.setAttribute('data-appearance', s.mode);
+    var st = r.style;
+    ['--bg', '--hover', '--hover-2', '--line', '--line-2', '--line-3', '--text', '--text-2', '--dim', '--dim-2', '--btn-h'].forEach(function (v) { st.removeProperty(v); });
+    if (s.mode === 'custom') {
+      var ink = s.textCol || (base === 'light' ? '#000000' : '#ffffff');
+      if (s.bgCol) { st.setProperty('--bg', s.bgCol); st.setProperty('--hover', mixHex(s.bgCol, ink, 0.06)); st.setProperty('--hover-2', mixHex(s.bgCol, ink, 0.12)); }
+      if (s.lineCol) { st.setProperty('--line', s.lineCol); st.setProperty('--line-2', mixHex(s.lineCol, ink, 0.35)); st.setProperty('--line-3', mixHex(s.lineCol, s.bgCol || (base === 'light' ? '#ffffff' : '#0a0b0d'), 0.55)); }
+      if (s.textCol) { st.setProperty('--text', s.textCol); st.setProperty('--text-2', mixHex(s.textCol, s.bgCol || (base === 'light' ? '#ffffff' : '#000000'), 0.15)); st.setProperty('--dim', mixHex(s.textCol, s.bgCol || (base === 'light' ? '#ffffff' : '#000000'), 0.4)); st.setProperty('--dim-2', mixHex(s.textCol, s.bgCol || (base === 'light' ? '#ffffff' : '#000000'), 0.57)); st.setProperty('--btn-h', mixHex(s.textCol, s.bgCol || '#000000', 0.16)); }
+    }
+    st.setProperty('--accent', s.accent || DEFAULTS.accent);
+    r.setAttribute('data-fs', s.fs);
+    st.setProperty('--radius', (s.radius || 0) + 'px');
+    st.setProperty('--av-radius', s.avRound ? '50%' : (s.radius || 0) + 'px');
+    r.setAttribute('data-round', s.avRound ? 'full' : 'square');
+    r.setAttribute('data-caps', s.caps ? 'on' : 'off');
+    r.setAttribute('data-motion', s.motion ? 'on' : 'off');
+    r.setAttribute('data-density', s.density);
+    var wall = s.mode === 'glass' && s.wall === 'none' ? WALLS.aurora : WALLS[s.wall] || '';
+    if (wall) { st.setProperty('--wall', wall); r.setAttribute('data-wall-on', '1'); } else { st.removeProperty('--wall'); r.setAttribute('data-wall-on', '0'); }
+    var lang = s.lang || detectLang();
+    r.setAttribute('data-lang', lang); r.setAttribute('lang', lang);
+    var meta = root.document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', s.mode === 'custom' && s.bgCol ? s.bgCol : base === 'light' ? '#ffffff' : '#000000');
+    listeners.forEach(function (fn) { try { fn(look); } catch (e) {} });
+  }
+  function detectLang(){ return ((root.navigator && root.navigator.language) || '').toLowerCase().indexOf('ru') === 0 ? 'ru' : 'en'; }
+
+  /* ---------------- public surface ---------------- */
+  var API = {
+    KEY: KEY, DEFAULTS: DEFAULTS, ACCENTS: ACCENTS, WALLS: WALLS, WALL_NAMES: WALL_NAMES,
+    hex2rgb: hex2rgb, rgb2hex: rgb2hex, luma: luma, mixHex: mixHex, contrast: contrast, prefersLight: prefersLight,
+    /* init(legacy?) — load konekt_look, or migrate the product's old settings, then apply. Safe to call once at boot. */
+    init: function (legacy) {
+      var saved = read();
+      look = clean(saved || migrate(legacy));
+      if (!saved) write();
+      apply();
+      if (root.matchMedia) { var mql = root.matchMedia('(prefers-color-scheme: light)'); var h = function () { if (look.mode === 'system' || (look.mode === 'custom' && !look.bgCol)) apply(); }; if (mql.addEventListener) mql.addEventListener('change', h); else if (mql.addListener) mql.addListener(h); }
+      root.addEventListener('storage', function (e) { if (e.key === KEY && e.newValue) { look = clean(read()); apply(); } });
+      return look;
+    },
+    get: function () { return look || (look = clean(read())); },
+    lang: function () { return (API.get().lang) || detectLang(); },
+    /* set(patch, {silent}) — merge, persist, apply, and schedule a sync push */
+    set: function (patch, opts) {
+      var next = {};
+      for (var k in look) if (Object.prototype.hasOwnProperty.call(look, k)) next[k] = look[k];
+      for (var p in patch) if (Object.prototype.hasOwnProperty.call(patch, p)) next[p] = patch[p];
+      if (patch && (patch.bgCol || patch.lineCol || patch.textCol) && !patch.mode) next.mode = 'custom';
+      look = clean(next); write(); apply();
+      if (sync && !(opts && opts.silent)) { clearTimeout(saveT); saveT = setTimeout(function () { sync.save(look).catch(function () {}); }, 800); }
+      return look;
+    },
+    reset: function () { var lang = look.lang; look = clean({ lang: lang }); write(); apply(); if (sync) sync.save(look).catch(function () {}); return look; },
+    apply: apply,
+    onChange: function (fn) { listeners.push(fn); },
+    /* connect({ load: () => Promise<look|null>, save: (look) => Promise }) — the account road.
+       Pulls once: a newer remote record wins over this device; otherwise this device's look is pushed. */
+    connect: function (hooks) {
+      sync = hooks;
+      return hooks.load().then(function (remote) {
+        if (remote && typeof remote === 'object' && Object.keys(remote).length) { var mine = look; look = clean(remote); if (mine.lang && !look.lang) look.lang = mine.lang; write(); apply(); }
+        else return hooks.save(look);
+      }).catch(function () {});
+    },
+    disconnect: function () { sync = null; },
+
+    /* ---------------- settings panel — the same rows in every product ---------------- */
+    T: function (k) { var L = API.lang(); var d = API.DICT[L]; return (d && d[k]) || k; },
+    DICT: {
+      en: {},
+      ru: {
+        'Appearance': 'Оформление', 'Colour scheme': 'Цветовая схема', 'Dark': 'Тёмная', 'Light': 'Светлая', 'System': 'Системная', 'Liquid Glass': 'Liquid Glass', 'Custom': 'Своя',
+        'Background': 'Фон', 'Outlines': 'Контуры', 'Text': 'Текст', 'Accent': 'Акцент', 'Any colour': 'Любой цвет', 'Text size': 'Размер текста', 'Small': 'Мелкий', 'Medium': 'Средний', 'Large': 'Крупный',
+        'Corner rounding': 'Скругление углов', 'Cubic': 'Кубично', 'Round avatars': 'Круглые аватары', 'Uppercase labels': 'Подписи заглавными', 'Reduce motion': 'Меньше анимации',
+        'Wallpaper': 'Обои', 'Layout density': 'Плотность', 'Cozy': 'Просторно', 'Compact': 'Компактно', 'Interface language': 'Язык интерфейса',
+        'Reset appearance': 'Сбросить оформление', 'One appearance for every KONEKT product. Signed in, it follows your account.': 'Одно оформление для всех продуктов KONEKT. Войдя в аккаунт, вы забираете его с собой.',
+        'Low contrast — text may be hard to read.': 'Низкий контраст — текст может плохо читаться.', 'None': 'Нет', 'Aurora': 'Аврора', 'Ember': 'Уголь', 'Mono': 'Моно', 'Teal': 'Бирюза', 'Violet': 'Фиолет', 'Void': 'Пустота', 'Nebula': 'Туманность', 'Grid': 'Сетка', 'Orbit': 'Орбита',
+        'Sky': 'Небо', 'Mint': 'Мята', 'Rose': 'Роза', 'Gold': 'Золото', 'Ink': 'Чернила', 'Scheme, accent, text size and corners: the same everywhere.': 'Схема, акцент, размер текста и углы: везде одинаково.',
+      },
+    },
+    /* panel(opts) -> HTML. opts.rows: array of row ids to include (default all); opts.langs: show the language row. Uses the family's .set-* / .seg / .sw classes; styles() gives the CSS. */
+    panel: function (opts) {
+      opts = opts || {};
+      var s = API.get(), T = API.T, L = API.lang();
+      var rows = opts.rows || ['mode', 'colours', 'accent', 'fs', 'radius', 'avRound', 'caps', 'motion', 'wall', 'density', 'lang', 'reset'];
+      function seg(key, list){ return '<span class="seg" role="radiogroup">' + list.map(function (o) { return '<button class="' + (String(s[key]) === String(o[0]) ? 'on' : '') + '" data-look="' + key + '" data-val="' + o[0] + '" role="radio" aria-checked="' + (String(s[key]) === String(o[0])) + '">' + T(o[1]) + '</button>'; }).join('') + '</span>'; }
+      function sw(key, inv){ var on = inv ? !s[key] : !!s[key]; return '<button class="sw' + (on ? ' on' : '') + '" data-looksw="' + key + '" data-inv="' + (inv ? 1 : 0) + '" role="switch" aria-checked="' + on + '"><i></i></button>'; }
+      function row(title, desc, ctl, cls){ return '<div class="set-row' + (cls ? ' ' + cls : '') + '"><span class="set-m"><span class="set-t">' + T(title) + '</span>' + (desc ? '<span class="set-d">' + T(desc) + '</span>' : '') + '</span>' + ctl + '</div>'; }
+      function col(key, label){ var v = s[key]; return row(label, '', '<span class="set-side col-side">' + (v ? '<button class="btn-xs" data-lookclear="' + key + '">×</button>' : '') + '<input type="color" class="col-in" data-lookcol="' + key + '" value="' + (v || (key === 'bgCol' ? '#000000' : key === 'lineCol' ? '#434343' : '#ffffff')) + '" aria-label="' + T(label) + '"></span>'); }
+      var h = '<div class="look-panel">';
+      h += '<p class="set-note">' + T('One appearance for every KONEKT product. Signed in, it follows your account.') + '</p>';
+      if (rows.indexOf('mode') >= 0) h += row('Colour scheme', '', seg('mode', [['dark', 'Dark'], ['light', 'Light'], ['system', 'System'], ['glass', 'Liquid Glass'], ['custom', 'Custom']]));
+      if (rows.indexOf('colours') >= 0 && s.mode === 'custom') {
+        h += col('bgCol', 'Background') + col('lineCol', 'Outlines') + col('textCol', 'Text');
+        var bg = s.bgCol || '#000000', tx = s.textCol || (luma(bg) > 0.5 ? '#000000' : '#ffffff');
+        if (contrast(bg, tx) < 4.5) h += '<p class="set-note warn">' + T('Low contrast — text may be hard to read.') + '</p>';
+      }
+      if (rows.indexOf('accent') >= 0) h += row('Accent', '', '<span class="set-side col-side"><span class="swatches">' + ACCENTS.map(function (a) { return '<button class="swatch' + (s.accent === a[0] ? ' on' : '') + '" data-look="accent" data-val="' + a[0] + '" style="background:' + a[0] + '" title="' + T(a[1]) + '" aria-label="' + T(a[1]) + '"></button>'; }).join('') + '</span><input type="color" class="col-in" data-lookcol="accent" value="' + s.accent + '" aria-label="' + T('Any colour') + '"></span>');
+      if (rows.indexOf('fs') >= 0) h += row('Text size', '', seg('fs', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']]));
+      if (rows.indexOf('radius') >= 0) h += row('Corner rounding', '', '<span class="set-side"><input type="range" class="rng" data-lookrange="radius" min="0" max="24" step="2" value="' + s.radius + '" aria-label="' + T('Corner rounding') + '"><b class="rng-v">' + (s.radius ? s.radius + 'px' : T('Cubic')) + '</b></span>');
+      if (rows.indexOf('avRound') >= 0) h += row('Round avatars', '', sw('avRound'));
+      if (rows.indexOf('caps') >= 0) h += row('Uppercase labels', '', sw('caps'));
+      if (rows.indexOf('motion') >= 0) h += row('Reduce motion', '', sw('motion', true));
+      if (rows.indexOf('wall') >= 0) h += row('Wallpaper', '', '<span class="set-side walls">' + Object.keys(WALLS).map(function (w) { return '<button class="wall' + (s.wall === w ? ' on' : '') + '" data-look="wall" data-val="' + w + '" style="background:' + (WALLS[w] || 'var(--bg)') + '" title="' + T(WALL_NAMES[w]) + '" aria-label="' + T(WALL_NAMES[w]) + '"></button>'; }).join('') + '</span>');
+      if (rows.indexOf('density') >= 0) h += row('Layout density', '', seg('density', [['cozy', 'Cozy'], ['compact', 'Compact']]));
+      if (rows.indexOf('lang') >= 0 && opts.langs !== false) h += row('Interface language', '', '<span class="seg" role="radiogroup"><button class="' + (L === 'en' ? 'on' : '') + '" data-look="lang" data-val="en">EN</button><button class="' + (L === 'ru' ? 'on' : '') + '" data-look="lang" data-val="ru">RU</button></span>');
+      if (rows.indexOf('reset') >= 0) h += '<div class="set-row"><button class="btn-xs danger" data-lookreset="1">' + T('Reset appearance') + '</button></div>';
+      return h + '</div>';
+    },
+    /* wire(rootEl, onChange) — delegated handlers for the panel. onChange(look) is called after every change (re-render the panel there). */
+    wire: function (el, onChange) {
+      if (!el || el.__lookWired) return; el.__lookWired = true;
+      var done = function () { if (onChange) onChange(API.get()); };
+      el.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-look],[data-looksw],[data-lookclear],[data-lookreset]');
+        if (!b) return;
+        if (b.dataset.look) { var o1 = {}; o1[b.dataset.look] = b.dataset.look === 'radius' ? Number(b.dataset.val) : b.dataset.val; API.set(o1); done(); }
+        else if (b.dataset.looksw) { var k = b.dataset.looksw; var o = {}; o[k] = !API.get()[k]; API.set(o); done(); }
+        else if (b.dataset.lookclear) { var o2 = {}; o2[b.dataset.lookclear] = ''; API.set(o2); done(); }
+        else if (b.dataset.lookreset) { API.reset(); done(); }
+      });
+      el.addEventListener('input', function (e) {
+        var t = e.target;
+        if (t.dataset && t.dataset.lookcol) { var o = {}; o[t.dataset.lookcol] = t.value; API.set(o); }
+        else if (t.dataset && t.dataset.lookrange) { var o3 = {}; o3[t.dataset.lookrange] = Number(t.value); API.set(o3); var v = el.querySelector('.rng-v'); if (v) v.textContent = Number(t.value) ? t.value + 'px' : API.T('Cubic'); }
+      });
+      el.addEventListener('change', function (e) { var t = e.target; if (t.dataset && (t.dataset.lookcol || t.dataset.lookrange)) done(); });
+    },
+    /* styles() — the CSS every product needs for the panel and the universal attributes. Inject once. */
+    styles: function () {
+      return [
+        ':root{--accent:#1d9bf0;--radius:0px;--av-radius:0px}',
+        ':root[data-fs="s"]{--fs:12.5px}:root[data-fs="l"]{--fs:15.5px}',
+        ':root[data-motion="off"] *,:root[data-motion="off"] *::before,:root[data-motion="off"] *::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}',
+        ':root{--glass-blur:26px;--glass-bg:rgba(20,20,26,.55);--glass-brd:rgba(255,255,255,.10)}:root[data-theme="light"]{--glass-bg:rgba(250,250,252,.6);--glass-brd:rgba(0,0,0,.08)}',
+        ':root[data-wall-on="1"] body{background:var(--wall) fixed;background-size:cover}',
+        '.look-panel .set-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-3);flex-wrap:wrap}.look-panel .set-row:last-child{border-bottom:0}',
+        '.look-panel .set-m{flex:1;min-width:120px}.look-panel .set-t{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;display:block}.look-panel .set-d{font-size:11px;color:var(--dim);margin-top:3px;display:block}',
+        '.look-panel .set-side{flex:0 1 auto;max-width:100%;min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap}.look-panel .set-note{font-size:11.5px;color:var(--dim);line-height:1.55;padding:6px 0 10px}.look-panel .set-note.warn{color:var(--warn)}',
+        '.look-panel .seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;max-width:100%;flex-wrap:wrap}.look-panel .seg button{padding:8px 11px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);border-right:1px solid var(--line);background:none;border-top:0;border-bottom:0;border-left:0;cursor:pointer;font-family:inherit;min-height:36px}.look-panel .seg button:last-child{border-right:0}.look-panel .seg button.on{background:var(--text);color:var(--bg)}',
+        '.look-panel .sw{width:40px;height:22px;border:1px solid var(--line);padding:2px;display:flex;background:none;cursor:pointer;border-radius:var(--radius)}.look-panel .sw i{width:16px;height:16px;background:var(--dim);transition:transform .14s ease,background .14s linear;display:block;border-radius:var(--radius)}.look-panel .sw.on{border-color:var(--accent)}.look-panel .sw.on i{transform:translateX(18px);background:var(--accent)}',
+        '.look-panel .rng{width:120px;accent-color:var(--accent)}.look-panel .rng-v{font-size:10.5px;color:var(--dim);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}',
+        '.look-panel .col-in{width:38px;height:28px;padding:0;border:1px solid var(--line);background:transparent;cursor:pointer;border-radius:var(--radius)}',
+        '.look-panel .swatches{display:inline-flex;gap:6px}.look-panel .swatch{width:22px;height:22px;border:1px solid var(--line);cursor:pointer;border-radius:var(--radius);padding:0}.look-panel .swatch.on{outline:2px solid var(--text);outline-offset:2px}',
+        '.look-panel .walls{display:flex;gap:6px;flex-wrap:wrap;max-width:100%}.look-panel .wall{width:34px;height:22px;border:1px solid var(--line);cursor:pointer;border-radius:var(--radius);padding:0}.look-panel .wall.on{outline:2px solid var(--text);outline-offset:2px}.look-panel .swatches{flex-wrap:wrap;max-width:100%}',
+        '.look-panel .btn-xs{border:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:6px 10px;cursor:pointer;border-radius:var(--radius);min-height:32px}.look-panel .btn-xs.danger{color:var(--danger);border-color:var(--danger)}',
+        ':root[data-caps="off"] .look-panel .set-t,:root[data-caps="off"] .look-panel .seg button,:root[data-caps="off"] .look-panel .btn-xs{text-transform:none;letter-spacing:0}',
+      ].join('\n');
+    },
+    injectStyles: function () { if (root.document.getElementById('konekt-look-css')) return; var s = root.document.createElement('style'); s.id = 'konekt-look-css'; s.textContent = API.styles(); root.document.head.appendChild(s); },
+  };
+  root.KONEKT_LOOK = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* KONEKT LOOK boots first — before the stylesheet, so the module's rules sit beneath
+   this file's own (text sizes, glass) and the first paint already wears your look.
+   The old kos.settings key is read once here to seed the universal look; it is never
+   written again — localStorage 'konekt_look' is the single source of truth. */
+(function(){
+  var legacy = null;
+  try { legacy = JSON.parse(localStorage.getItem('kos.settings') || 'null'); } catch (e) {}
+  if (legacy && typeof legacy === 'object' && legacy.mode === undefined) {   /* 1.4 shipped theme/corners/motion-as-string */
+    if (legacy.theme) legacy.mode = legacy.theme === 'light' ? 'light' : 'dark';
+    if (legacy.corners) legacy.radius = legacy.corners === 'soft' ? 10 : 0;
+    if (typeof legacy.motion === 'string') legacy.motion = legacy.motion !== 'off';
+  }
+  KONEKT_LOOK.injectStyles();
+  KONEKT_LOOK.init(legacy);
+})();
+</script>
 <style>
 /* ============================= THEME =============================
    Same tokens as KONEKT — black, cubic, hairlines. */
@@ -56,7 +346,7 @@
   --glass-brd:rgba(0,0,0,.08);
   color-scheme:light;
 }
-/* ---- the KONEKT BROWSER appearance set, carried into the OS ---- */
+/* ---- the family's KONEKT LOOK attributes (the module writes them; this sheet reads them) ---- */
 :root[data-fs="s"]{--fs:13px}
 :root[data-fs="l"]{--fs:15.5px}
 :root[data-density="compact"]{--strip:28px;--bar:38px}
@@ -769,63 +1059,13 @@ const IC = {
 };
 
 /* ---------------------------- settings ----------------------------
-   The appearance model is KONEKT BROWSER's, carried over whole: five colour
-   schemes (the last one derives its greys from your own three colours), seven
-   accents plus a wheel, type size, corner rounding, the three toggles,
-   wallpapers and layout density. One system, two products. */
-const DEFAULTS = {
-  mode:'dark',        /* dark | light | system | glass | custom */
-  bgCol:'', lineCol:'', textCol:'',
-  accent:'#1d9bf0',
-  fs:'m',             /* s | m | l */
-  radius:0,           /* 0–24px, cubic by default */
-  avRound:false,
-  caps:true,
-  motion:true,
-  wall:'void',
-  density:'cozy'      /* cozy | compact */
-};
-function migrateSettings(s){
-  /* 1.4 shipped theme/corners/motion-as-string; keep those installs intact */
-  if(s && s.mode === undefined){
-    if(s.theme) s.mode = s.theme === 'light' ? 'light' : 'dark';
-    if(s.corners) s.radius = s.corners === 'soft' ? 10 : 0;
-    if(typeof s.motion === 'string') s.motion = s.motion !== 'off';
-    delete s.theme; delete s.corners;
-  }
-  return s || {};
-}
-let settings = Object.assign({}, DEFAULTS, migrateSettings(store.get('kos.settings', {})));
-function saveSettings(){ store.set('kos.settings', settings); }
+   The appearance model is the family's universal KONEKT LOOK, inlined in <head>
+   and booted there from the old kos.settings. `settings` is a live mirror of
+   KONEKT_LOOK.get(); every change goes through KONEKT_LOOK.set(). The OS keeps
+   only what is its own: the four drawn wallpapers it paints on the desk. */
+let settings = KONEKT_LOOK.get();
+const LOOK_ROWS = { rows: ['mode', 'colours', 'accent', 'fs', 'radius', 'avRound', 'caps', 'motion', 'wall', 'density', 'reset'] };
 
-const ACCENTS = ['#1d9bf0', '#00ba7c', '#f91880', '#ffd400', '#a970ff', '#ff6a00', '#ffffff'];
-
-/* colour maths — the same derivation the browser uses for custom schemes */
-function hexN(h){
-  h = String(h || '').replace('#', '');
-  if(h.length === 3) h = h.split('').map(c => c + c).join('');
-  const n = parseInt(h, 16);
-  return (h.length === 6 && !isNaN(n)) ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : null;
-}
-function luma(h){
-  const c = hexN(h);
-  return c ? (.2126 * c[0] + .7152 * c[1] + .0722 * c[2]) / 255 : .5;
-}
-function mixHex(a, b, t){
-  const A = hexN(a), B = hexN(b);
-  if(!A || !B) return a;
-  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
-}
-function contrast(a, b){
-  const L = x => { const c = hexN(x); if(!c) return 0;
-    const s = c.map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
-    return .2126 * s[0] + .7152 * s[1] + .0722 * s[2]; };
-  const l1 = L(a), l2 = L(b);
-  return (Math.max(l1, l2) + .05) / (Math.min(l1, l2) + .05);
-}
-function prefersLight(){
-  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches;
-}
 
 function svgURI(w, h, inner){
   return 'data:image/svg+xml,' + encodeURIComponent(
@@ -888,78 +1128,28 @@ const WALLS = {
       '<circle cx="480" cy="270" r="5" fill="#fff"/>');
   }
 };
-/* the six KONEKT BROWSER wallpapers, verbatim — gradients, nothing fetched */
-const GRADIENTS = {
-  none:   '',
-  aurora: 'radial-gradient(120% 120% at 20% 0%, #10233b 0%, #0a0a12 45%, #000 100%), radial-gradient(90% 90% at 100% 100%, #241033 0%, transparent 60%)',
-  ember:  'radial-gradient(120% 120% at 0% 0%, #2a0f0f 0%, #0a0708 45%, #000 100%), radial-gradient(90% 90% at 100% 30%, #3a1d05 0%, transparent 60%)',
-  mono:   'radial-gradient(120% 120% at 50% 0%, #1a1a1a 0%, #0a0a0a 50%, #000 100%)',
-  teal:   'radial-gradient(120% 120% at 15% 10%, #06272b 0%, #06131a 45%, #000 100%), radial-gradient(80% 80% at 100% 100%, #0b3a2e 0%, transparent 60%)',
-  violet: 'radial-gradient(120% 120% at 80% 0%, #1a1040 0%, #0a0816 45%, #000 100%), radial-gradient(90% 90% at 0% 100%, #3a0f36 0%, transparent 60%)'
-};
-const WALL_NAMES = {
-  void:'VOID', nebula:'NEBULA', grid:'HORIZON', orbit:'ORBIT',
-  none:'NONE', aurora:'AURORA', ember:'EMBER', mono:'MONO', teal:'TEAL', violet:'VIOLET'
-};
-function wallKeys(){ return Object.keys(WALLS).concat(Object.keys(GRADIENTS)); }
+/* the six gradient wallpapers live in KONEKT LOOK; the OS adds its four drawn ones */
+function wallKeys(){ return Object.keys(KONEKT_LOOK.WALLS); }
 function wallCSS(k){
   if(WALLS[k]) return 'url("' + WALLS[k]() + '")';
-  if(GRADIENTS[k] !== undefined) return GRADIENTS[k];
-  return 'url("' + WALLS.void() + '")';
+  return KONEKT_LOOK.WALLS[k] || '';
+}
+/* the panel previews wallpapers with the module's gradients; swap in the OS's drawn ones */
+function decorateWalls(root){
+  $$('.wall[data-val]', root).forEach(b => { if(WALLS[b.dataset.val]) b.style.background = wallCSS(b.dataset.val) + ' center/cover'; });
 }
 
-function applySettings(){
-  const r = document.documentElement, S = r.style;
-  const mode = settings.mode || 'dark';
-  ['--bg', '--hover', '--hover-2', '--line', '--line-2', '--line-3', '--text'].forEach(k => S.removeProperty(k));
-
-  let base;                                     /* which built-in palette the greys follow */
-  if(mode === 'custom'){
-    const bgc = settings.bgCol;
-    const ink = settings.textCol || (bgc && luma(bgc) > .5 ? '#000000' : '#ffffff');
-    base = bgc ? (luma(bgc) > .5 ? 'light' : 'dark') : (prefersLight() ? 'light' : 'dark');
-    if(bgc){
-      S.setProperty('--bg', bgc);
-      S.setProperty('--hover', mixHex(bgc, ink, .06));
-      S.setProperty('--hover-2', mixHex(bgc, ink, .12));
-    }
-    if(settings.lineCol){
-      S.setProperty('--line', settings.lineCol);
-      S.setProperty('--line-2', mixHex(settings.lineCol, ink, .35));
-      S.setProperty('--line-3', mixHex(settings.lineCol, bgc || (base === 'light' ? '#ffffff' : '#000000'), .55));
-    }
-    if(settings.textCol) S.setProperty('--text', settings.textCol);
-  } else if(mode === 'system'){
-    base = prefersLight() ? 'light' : 'dark';
-  } else {
-    base = mode === 'light' ? 'light' : 'dark';  /* dark and glass share the dark palette */
-  }
-  r.dataset.theme = base;
-  r.dataset.appearance = mode;
-  r.dataset.fs = settings.fs || 'm';
-  r.dataset.density = settings.density || 'cozy';
-  r.dataset.caps = settings.caps === false ? 'off' : 'on';
-  r.dataset.motion = settings.motion === false ? 'off' : 'on';
-  S.setProperty('--accent', settings.accent || '#1d9bf0');
-
-  const rad = Math.max(0, Math.min(24, parseInt(settings.radius, 10) || 0));
-  S.setProperty('--radius', rad + 'px');
-  S.setProperty('--av-radius', settings.avRound ? '50%' : rad + 'px');
-
+/* The desk wallpaper is the one thing the OS layers on top of KONEKT_LOOK.apply():
+   the module paints its gradients through --wall (aurora when glass has no wallpaper);
+   void, nebula, grid and orbit are the OS's own drawn SVGs and win on the desk. */
+function applyDesk(look){
   const desk = $('#desk');
-  if(desk){
-    let w = wallCSS(settings.wall);
-    if(!w && mode === 'glass') w = GRADIENTS.aurora;   /* glass needs something to frost */
-    desk.style.backgroundImage = w || 'none';
-  }
+  if(!desk) return;
+  const w = WALLS[look.wall] ? 'url("' + WALLS[look.wall]() + '")'
+    : (document.documentElement.style.getPropertyValue('--wall') || '');
+  desk.style.backgroundImage = w || 'none';
 }
-/* follow the system when the scheme is System (or a Custom one with no background set) */
-if(typeof matchMedia === 'function'){
-  const mq = matchMedia('(prefers-color-scheme: light)');
-  const onScheme = () => { if(settings.mode === 'system' || settings.mode === 'custom') applySettings(); };
-  if(mq.addEventListener) mq.addEventListener('change', onScheme);
-  else if(mq.addListener) mq.addListener(onScheme);
-}
+KONEKT_LOOK.onChange(look => { settings = look; applyDesk(look); });
 
 /* ---------------------------- virtual filesystem ----------------------------
    A tree in localStorage. dir: {type,children,mtime}  file: {type,content,mtime}.
@@ -1352,6 +1542,7 @@ function shutdown(){
 }
 function factoryReset(){
   ['kos.user', 'kos.fs', 'kos.settings'].forEach(k => store.del(k));
+  KONEKT_LOOK.reset();
   location.reload();
 }
 function enterDesktop(){
@@ -2246,13 +2437,13 @@ function launchTerm(w){
     wallpaper: { d:'wallpaper list|<name> — ten of them', fn(a){
       if(!a[0] || a[0] === 'list'){ wallKeys().forEach(k => printText((k === settings.wall ? '* ' : '  ') + k)); return; }
       if(wallKeys().indexOf(a[0]) < 0){ printText('no such wallpaper (try "wallpaper list")', 'err'); return; }
-      settings.wall = a[0]; saveSettings(); applySettings(); refreshSettings();
+      KONEKT_LOOK.set({ wall: a[0] }); refreshSettings();
     }},
     theme: { d:'theme dark|light|system|glass|custom', fn(a){
       const modes = ['dark', 'light', 'system', 'glass', 'custom'];
       if(!a[0]){ modes.forEach(m => printText((m === settings.mode ? '* ' : '  ') + m)); return; }
       if(modes.indexOf(a[0]) < 0){ printText('no such colour scheme', 'err'); return; }
-      settings.mode = a[0]; saveSettings(); applySettings(); refreshSettings();
+      KONEKT_LOOK.set({ mode: a[0] }); refreshSettings();
     }},
     date: { d:'the time on this side of the visor', fn(){ printText(new Date().toString()); }},
     whoami: { d:'you', fn(){ printText(user.name); }},
@@ -2373,12 +2564,6 @@ function launchSettings(w, arg){
     '</div>';
   const main = $('.st-main', w.body);
 
-  function seg(opts, curVal, fn){
-    const s = el('<div class="seg">' + opts.map(o =>
-      '<button data-v="' + o[0] + '" class="' + (o[0] === curVal ? 'on' : '') + '">' + o[1] + '</button>').join('') + '</div>');
-    $$('button', s).forEach(b => b.onclick = () => { fn(b.dataset.v); render(); });
-    return s;
-  }
   function sec(title){
     const d = el('<div class="st-sec"><h3 class="st-t">' + title + '</h3></div>');
     main.appendChild(d);
@@ -2388,94 +2573,13 @@ function launchSettings(w, arg){
     $$('.st-ni', w.body).forEach(b => b.classList.toggle('on', b.dataset.p === st.pane));
     main.innerHTML = '';
     if(st.pane === 'appearance'){
-      const set = (k, v) => { settings[k] = v; saveSettings(); applySettings(); render(); };
-
-      sec('Appearance — colour scheme').appendChild(seg(
-        [['dark','Dark'],['light','Light'],['system','System'],['glass','Glass'],['custom','Custom']],
-        settings.mode, v => set('mode', v)));
-
-      if(settings.mode === 'custom'){
-        const cs = sec('Custom colours');
-        const fallbackBg = document.documentElement.dataset.theme === 'light' ? '#ffffff' : '#0a0b0d';
-        const fields = [
-          ['Background', 'bgCol',   settings.bgCol   || fallbackBg],
-          ['Outlines',   'lineCol', settings.lineCol || '#434343'],
-          ['Text',       'textCol', settings.textCol || (document.documentElement.dataset.theme === 'light' ? '#000000' : '#ffffff')]
-        ];
-        fields.forEach(([label, key, val]) => {
-          const row = el('<div class="col-row"><span class="col-l">' + label + '</span>' +
-            '<span class="col-r"><input type="color" value="' + val + '"><b>' + val.toUpperCase() + '</b></span></div>');
-          $('input', row).oninput = e => { settings[key] = e.target.value; saveSettings(); applySettings(); $('b', row).textContent = e.target.value.toUpperCase(); };
-          $('input', row).onchange = () => render();
-          cs.appendChild(row);
-        });
-        const bg = settings.bgCol || fallbackBg, ink = settings.textCol || (luma(bg) > .5 ? '#000000' : '#ffffff');
-        const ratio = contrast(bg, ink);
-        cs.appendChild(el('<div class="st-note"' + (ratio < 4.5 ? ' style="color:var(--warn)"' : '') + '>' +
-          'Text on background: ' + ratio.toFixed(1) + ':1' +
-          (ratio < 4.5 ? ' — below the 4.5:1 readability floor. The greys are derived from these two, so low contrast spreads everywhere.'
-                       : ' — comfortable. The greys and hover states are derived from these two colours.') + '</div>'));
-      }
-
-      const ac = sec('Accent');
-      const sw = el('<div class="swatches"></div>');
-      ACCENTS.forEach(c => {
-        const on = String(settings.accent).toLowerCase() === c.toLowerCase();
-        const b = el('<button class="swatch' + (on ? ' on' : '') + '" style="background:' + c + '" title="' + c + '" aria-label="Accent ' + c + '"></button>');
-        b.onclick = () => set('accent', c);
-        sw.appendChild(b);
-      });
-      const wheel = el('<label class="swatch sw-wheel" title="Custom accent"><input type="color" value="' + settings.accent + '"></label>');
-      $('input', wheel).oninput = e => { settings.accent = e.target.value; saveSettings(); applySettings(); };
-      $('input', wheel).onchange = () => render();
-      sw.appendChild(wheel);
-      ac.appendChild(sw);
-
-      sec('Text size').appendChild(seg([['s','S'],['m','M'],['l','L']], settings.fs || 'm', v => set('fs', v)));
-
-      const sh = sec('Shape');
-      const rad = Math.max(0, Math.min(24, parseInt(settings.radius, 10) || 0));
-      const rr = el('<div class="rng-row"><span class="col-l">Corner rounding</span>' +
-        '<span class="col-r"><input type="range" min="0" max="24" step="2" value="' + rad + '"><b>' + rad + 'px</b></span></div>');
-      $('input', rr).oninput = e => {
-        settings.radius = +e.target.value; saveSettings(); applySettings();
-        $('b', rr).textContent = settings.radius + 'px';
-      };
-      sh.appendChild(rr);
-
-      const tg = sec('Interface');
-      /* "Reduce motion" reads inverted: On means settings.motion is false */
-      [['Round avatar',        !!settings.avRound,        v => set('avRound', v)],
-       ['Uppercase interface', settings.caps !== false,   v => set('caps', v)],
-       ['Reduce motion',       settings.motion === false, v => set('motion', !v)]
-      ].forEach(([label, on, apply]) => {
-        const b = el('<button class="tog-row"><span>' + label + '</span><span class="tog-v' + (on ? ' on' : '') + '">' + (on ? 'On' : 'Off') + '</span></button>');
-        b.onclick = () => apply(!on);
-        tg.appendChild(b);
-      });
-
-      const wl = sec('Wallpaper');
-      const ws = el('<div class="walls"></div>');
-      wallKeys().forEach(k => {
-        const css = wallCSS(k);
-        const b = el('<button class="wall' + (k === settings.wall ? ' on' : '') + '" aria-label="' + WALL_NAMES[k] + '"' +
-          ' style=\'background-image:' + (css || 'none') + (css ? '' : ';background:var(--hover-2)') + '\'><span>' + WALL_NAMES[k] + '</span></button>');
-        b.onclick = () => set('wall', k);
-        ws.appendChild(b);
-      });
-      wl.appendChild(ws);
-
-      sec('Layout').appendChild(seg([['cozy','Cozy'],['compact','Compact']], settings.density || 'cozy', v => set('density', v)));
-
-      const rs = sec('Reset');
-      const rb = el('<button class="btn-line">Reset appearance</button>');
-      rb.onclick = () => {
-        ['mode','bgCol','lineCol','textCol','accent','fs','radius','avRound','caps','motion','wall','density']
-          .forEach(k => settings[k] = DEFAULTS[k]);
-        saveSettings(); applySettings(); render();
-      };
-      rs.appendChild(rb);
-      rs.insertAdjacentHTML('beforeend', '<div class="st-note">Returns every appearance setting to the original KONEKT look: black, cubic, one accent.</div>');
+      /* the universal KONEKT LOOK panel — the same rows as every product in the family */
+      const lp = el('<div class="st-sec" id="lookPanel"></div>');
+      const paint = () => { lp.innerHTML = KONEKT_LOOK.panel(LOOK_ROWS); decorateWalls(lp); };
+      paint();
+      main.appendChild(lp);
+      KONEKT_LOOK.wire(lp, paint);
+      main.insertAdjacentHTML('beforeend', '<div class="st-note">Void, Nebula, Grid and Orbit are drawn by the OS itself; every other wallpaper and every setting above is the family\'s — change it here and KONEKT, the browser, the mail and the rest wear it too.</div>');
     }
     if(st.pane === 'account'){
       const nm = sec('Display name');
@@ -2604,7 +2708,7 @@ function buildDesktop(){
 
 /* ---------------------------- init ---------------------------- */
 fsLoad();
-applySettings();
+applyDesk(settings);
 setInterval(clockTick, 1000);
 clockTick();
 boot();
