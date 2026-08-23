@@ -3,10 +3,11 @@
 A Russian desktop operating system people choose — not one they are assigned.
 NKO Intl. Foundation of Technological Research & Development · KONEKT HOLDING.
 
-This repo is the **product site + concept shell + build plan**. The OS itself is
-deliberately not being built yet — the research says exactly how to build it when
-the time comes.
+This repo holds the **product site, the shell, the research behind the
+architecture — and a build that turns the shell into a bootable operating
+system you can run in a virtual machine or from a USB stick.**
 
+- `iso/` — the bootable image: `build.sh` makes a live ISO, `run-vbox.ps1` runs it
 - `index.html` — the product site (RU/EN, one file, no build step)
 - `demo.html` — the interactive concept shell: boot → login → a full desktop with
   window manager, **KONEKT BROWSER preinstalled**, Files, Terminal (`neofetch`!),
@@ -43,6 +44,25 @@ checks on demand; `update preview` shows the dialog without installing anything.
 What we are explicitly not doing: writing a kernel (ReactOS: 30 years, still
 alpha), forking compositors (COSMIC: 4 years to a spartan 1.0), chasing
 Windows binary compatibility, or selling certificates.
+
+## Run it as an operating system
+
+`demo.html` is the shell; `iso/build.sh` turns it into a real bootable OS —
+Debian stable that boots straight into KONEKT OS, no Linux login, no browser
+chrome. On Windows, WSL2 is enough of a Linux host:
+
+```bash
+sudo ./iso/build.sh
+```
+
+Then start it in VirtualBox:
+
+```powershell
+.\iso\run-vbox.ps1
+```
+
+Full instructions, including QEMU, USB sticks and persistence, are in
+[iso/README.md](iso/README.md).
 
 ## Run the site locally
 

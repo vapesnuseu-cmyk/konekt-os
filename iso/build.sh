@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+# =============================================================================
+# KONEKT OS — bootable live ISO
+#
+# Builds a Debian-stable live image that boots straight into the KONEKT OS
+# shell: no Linux login, no browser chrome, no desktop underneath. This is the
+# architecture from RESEARCH.md in its smallest honest form — a boring proven
+# base, with everything the user sees belonging to us.
+#
+# Run as root on any Debian/Ubuntu host (WSL2 works):
+#     sudo ./iso/build.sh
+#
+# Output: dist/konekt-os-<version>-amd64.iso  (BIOS + UEFI hybrid)
+# =============================================================================
+set -euo pipefail
+
+SUITE="${SUITE:-trixie}"
+ARCH="${ARCH:-amd64}"
+MIRROR="${MIRROR:-http://deb.debian.org/debian}"
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$HERE/.." && pwd)"
+WORK="${WORK:-/tmp/konekt-iso}"
+OUT="${OUT:-$REPO/dist}"
+ROOTFS="$WORK/rootfs"
+ISODIR="$WORK/iso"
+
+VERSION="$(python3 -c "import json;print(json.load(open('$REPO/version.json'))['version'])" 2>/dev/null || echo 1.6.0)"
+BUILD="$(python3 -c "import json;print(json.load(open('$REPO/version.json'))['build'])" 2>/dev/null || echo 0)"
+ISO="$OUT/konekt-os-$VERSION-$ARCH.iso"
+
+say(){ printf '\n\033[1m[konekt]\033[0m %s\n' "$*"; }
+[ "$(id -u)" = 0 ] || { echo "run me as root"; exit 1; }
+
+# ---------------------------------------------------------------- build deps
+say "installing build tools on the host"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -y -qq --no-install-recommends \
+  mmdebstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin \
+  mtools dosfstools ca-certificates python3 curl gpg binutils >/dev/null
+
+# The host may be Ubuntu (WSL), whose debian-archive-keyring is older than the
+# current Debian release key — then apt inside mmdebstrap refuses the archive.
+# Take the keyring from Debian itself, over TLS, and use exactly that.
+KEYRING=/usr/share/keyrings/konekt-debian-archive-keyring.gpg
+say "fetching Debian's archive keyring"
+apt-get install -y -qq debian-archive-keyring >/dev/null 2>&1 || true
+KDIR="$(mktemp -d)"
+KURL="https://deb.debian.org/debian/pool/main/d/debian-archive-keyring"
+KDEB="$(curl -fsSL "$KURL/" | grep -o 'debian-archive-keyring_[^\"]*_all\.deb' | sort -V | tail -1)"
+[ -n "$KDEB" ] || { echo "could not find the keyring package"; exit 1; }
+curl -fsSL -o "$KDIR/k.deb" "$KURL/$KDEB"
+( cd "$KDIR" && ar x k.deb && tar -xf data.tar.* )
+if [ -f "$KDIR/usr/share/keyrings/debian-archive-keyring.gpg" ]; then
+  cp "$KDIR/usr/share/keyrings/debian-archive-keyring.gpg" "$KEYRING"
+elif [ -f "$KDIR/usr/share/keyrings/debian-archive-keyring.asc" ]; then
+  gpg --dearmor < "$KDIR/usr/share/keyrings/debian-archive-keyring.asc" > "$KEYRING"
+else
+  echo "keyring package had no keyring in it"; exit 1
+fi
+rm -rf "$KDIR"
+echo "keyring: $KDEB"
+
+# ---------------------------------------------------------------- rootfs
+say "bootstrapping Debian $SUITE — this is the long part"
+rm -rf "$WORK"
+mkdir -p "$ROOTFS" "$ISODIR/live" "$ISODIR/boot/grub" "$OUT"
+
+PKGS="linux-image-$ARCH,live-boot,systemd-sysv,init,dbus,udev,libpam-systemd,
+xserver-xorg-core,xserver-xorg-input-libinput,xserver-xorg-video-vmware,
+xserver-xorg-video-fbdev,xserver-xorg-video-vesa,xinit,x11-xserver-utils,
+chromium,python3,fonts-dejavu-core,fontconfig,
+iproute2,iputils-ping,ca-certificates,pciutils,less,nano,psmisc"
+PKGS="$(echo "$PKGS" | tr -d ' \n')"
+
+mmdebstrap \
+  --arch="$ARCH" \
+  --variant=important \
+  --keyring="$KEYRING" \
+  --components="main,contrib,non-free-firmware" \
+  --include="$PKGS" \
+  "$SUITE" "$ROOTFS" "$MIRROR"
+
+# ---------------------------------------------------------------- identity
+say "branding the system"
+echo "konekt" > "$ROOTFS/etc/hostname"
+cat > "$ROOTFS/etc/hosts" <<EOF
+127.0.0.1   localhost konekt
+::1         localhost ip6-localhost ip6-loopback
+EOF
+
+cat > "$ROOTFS/etc/os-release" <<EOF
+PRETTY_NAME="KONEKT OS $VERSION"
+NAME="KONEKT OS"
+VERSION_ID="$VERSION"
+VERSION="$VERSION (build $BUILD)"
+ID=konekt
+ID_LIKE=debian
+HOME_URL="https://konekt-os.vercel.app"
+SUPPORT_URL="https://konekt-os.vercel.app"
+EOF
+
+cat > "$ROOTFS/etc/issue" <<EOF
+
+KONEKT OS $VERSION — NKO Intl. Foundation of Technological Research & Development
+The desktop starts by itself. Ctrl+Alt+F2 for a terminal.
+
+EOF
+
+# ---------------------------------------------------------------- the OS payload
+say "installing the KONEKT OS shell into /opt/konekt"
+mkdir -p "$ROOTFS/opt/konekt"
+cp "$REPO/demo.html"    "$ROOTFS/opt/konekt/index.html"
+cp "$REPO/version.json" "$ROOTFS/opt/konekt/version.json"
+[ -f "$REPO/README.md" ] && cp "$REPO/README.md" "$ROOTFS/opt/konekt/README.md" || true
+
+# ---------------------------------------------------------------- session user
+say "creating the session"
+chroot "$ROOTFS" useradd -m -s /bin/bash -G audio,video,input konekt
+chroot "$ROOTFS" passwd -d konekt >/dev/null 2>&1 || true
+
+# autologin on tty1
+mkdir -p "$ROOTFS/etc/systemd/system/getty@tty1.service.d"
+cat > "$ROOTFS/etc/systemd/system/getty@tty1.service.d/autologin.conf" <<'EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin konekt --noclear %I $TERM
+EOF
+
+# tty1 starts the shell session, nothing else does
+cat > "$ROOTFS/home/konekt/.bash_profile" <<'EOF'
+if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
+  exec startx >/dev/null 2>&1
+fi
+EOF
+
+# the session itself: serve the OS locally, then show it fullscreen
+cat > "$ROOTFS/home/konekt/.xinitrc" <<'EOF'
+#!/bin/bash
+# KONEKT OS session. The shell is served over loopback so that its own
+# update check (version.json) works exactly as it does on a real install.
+xset -dpms s off s noblank 2>/dev/null || true
+
+python3 -m http.server 8923 --bind 127.0.0.1 --directory /opt/konekt >/dev/null 2>&1 &
+for _ in $(seq 1 60); do
+  if (exec 3<>/dev/tcp/127.0.0.1/8923) 2>/dev/null; then exec 3>&- 3<&-; break; fi
+  sleep 0.25
+done
+
+exec chromium \
+  --kiosk \
+  --app=http://127.0.0.1:8923/index.html \
+  --user-data-dir=/home/konekt/.konekt-profile \
+  --no-first-run --no-default-browser-check --noerrdialogs --disable-infobars \
+  --disable-translate --disable-features=TranslateUI,Translate \
+  --disable-pinch --overscroll-history-navigation=0 \
+  --check-for-update-interval=31536000 \
+  --password-store=basic \
+  --disable-session-crashed-bubble --hide-crash-restore-bubble \
+  --enable-features=OverlayScrollbar \
+  --window-position=0,0
+EOF
+chmod +x "$ROOTFS/home/konekt/.xinitrc"
+# A PC's RTC usually holds local time (VirtualBox presents it that way, and so
+# does any machine that dual-boots Windows). Read it as local so the clock on
+# the lock screen is the time in the room.
+printf '0.0 0 0.0\n0\nLOCAL\n' > "$ROOTFS/etc/adjtime"
+
+chroot "$ROOTFS" chown -R konekt:konekt /home/konekt
+
+# X may be started by a normal user from tty1
+mkdir -p "$ROOTFS/etc/X11"
+cat > "$ROOTFS/etc/X11/Xwrapper.config" <<'EOF'
+allowed_users=anybody
+needs_root_rights=yes
+EOF
+
+# ---------------------------------------------------------------- network
+say "wiring DHCP"
+mkdir -p "$ROOTFS/etc/systemd/network"
+cat > "$ROOTFS/etc/systemd/network/20-wired.network" <<'EOF'
+[Match]
+Name=en* eth*
+
+[Network]
+DHCP=yes
+EOF
+chroot "$ROOTFS" systemctl enable systemd-networkd >/dev/null 2>&1 || true
+chroot "$ROOTFS" systemctl enable systemd-resolved >/dev/null 2>&1 || true
+ln -sf /run/systemd/resolve/stub-resolv.conf "$ROOTFS/etc/resolv.conf" 2>/dev/null || true
+
+# quieter, faster boot: nothing here waits on a network
+chroot "$ROOTFS" systemctl disable systemd-networkd-wait-online >/dev/null 2>&1 || true
+
+# ---------------------------------------------------------------- initramfs
+say "rebuilding the initramfs with live-boot"
+mount --bind /proc "$ROOTFS/proc"
+mount --bind /sys  "$ROOTFS/sys"
+mount --bind /dev  "$ROOTFS/dev"
+trap 'umount -l "$ROOTFS/proc" "$ROOTFS/sys" "$ROOTFS/dev" 2>/dev/null || true' EXIT
+chroot "$ROOTFS" update-initramfs -u -k all
+umount -l "$ROOTFS/proc" "$ROOTFS/sys" "$ROOTFS/dev" 2>/dev/null || true
+trap - EXIT
+
+# ---------------------------------------------------------------- squash
+say "squashing the filesystem"
+KVER="$(basename "$(ls -1 "$ROOTFS"/boot/vmlinuz-* | sort | tail -1)" | sed 's/vmlinuz-//')"
+cp "$ROOTFS/boot/vmlinuz-$KVER"    "$ISODIR/live/vmlinuz"
+cp "$ROOTFS/boot/initrd.img-$KVER" "$ISODIR/live/initrd"
+
+rm -rf "$ROOTFS/var/cache/apt/archives" "$ROOTFS/var/lib/apt/lists"
+mkdir -p "$ROOTFS/var/cache/apt/archives" "$ROOTFS/var/lib/apt/lists"
+
+mksquashfs "$ROOTFS" "$ISODIR/live/filesystem.squashfs" \
+  -comp xz -b 1M -noappend -e boot
+
+# ---------------------------------------------------------------- bootloader
+say "writing the boot menu"
+cat > "$ISODIR/boot/grub/grub.cfg" <<EOF
+set default=0
+set timeout=3
+
+menuentry "KONEKT OS $VERSION" {
+    linux /live/vmlinuz boot=live components quiet loglevel=2 persistence
+    initrd /live/initrd
+}
+menuentry "KONEKT OS $VERSION (safe graphics)" {
+    linux /live/vmlinuz boot=live components quiet loglevel=2 nomodeset
+    initrd /live/initrd
+}
+menuentry "KONEKT OS $VERSION (verbose boot)" {
+    linux /live/vmlinuz boot=live components
+    initrd /live/initrd
+}
+EOF
+
+say "building the ISO"
+grub-mkrescue -o "$ISO" "$ISODIR" -- -volid "KONEKT_OS"
+
+chmod 644 "$ISO"
+say "done: $ISO"
+ls -lh "$ISO"
+sha256sum "$ISO" | tee "$ISO.sha256"
