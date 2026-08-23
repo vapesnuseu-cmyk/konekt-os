@@ -35,10 +35,14 @@ mkdir -p "$ISODIR/live" "$ISODIR/boot/grub" "$OUT"
 
 # ---------------------------------------------------------------- get a rootfs
 if [ ! -d "$ROOTFS" ]; then
-  [ -f "$ISO" ] || { echo "no build tree at $ROOTFS and no ISO at $ISO — run iso/build.sh"; exit 1; }
-  say "no build tree; unpacking $(basename "$ISO")"
+  # unpack whatever image we last built — it need not be this version, since a
+  # respin usually exists to produce a *new* version from the previous one
+  SRC_ISO="$ISO"
+  [ -f "$SRC_ISO" ] || SRC_ISO="$(ls -1t "$OUT"/konekt-os-*.iso 2>/dev/null | head -1)"
+  [ -n "$SRC_ISO" ] && [ -f "$SRC_ISO" ] || { echo "no build tree at $ROOTFS and no ISO in $OUT — run iso/build.sh"; exit 1; }
+  say "no build tree; unpacking $(basename "$SRC_ISO")"
   MNT="$(mktemp -d)"
-  if mount -o loop,ro "$ISO" "$MNT" 2>/dev/null; then
+  if mount -o loop,ro "$SRC_ISO" "$MNT" 2>/dev/null; then
     cp "$MNT/live/vmlinuz" "$ISODIR/live/vmlinuz"
     cp "$MNT/live/initrd"  "$ISODIR/live/initrd"
     unsquashfs -f -d "$ROOTFS" "$MNT/live/filesystem.squashfs" >/dev/null
@@ -46,7 +50,7 @@ if [ ! -d "$ROOTFS" ]; then
   else
     say "loop mount unavailable — reading the ISO with bsdtar"
     EX="$(mktemp -d)"
-    bsdtar -xf "$ISO" -C "$EX" live/vmlinuz live/initrd live/filesystem.squashfs
+    bsdtar -xf "$SRC_ISO" -C "$EX" live/vmlinuz live/initrd live/filesystem.squashfs
     cp "$EX/live/vmlinuz" "$ISODIR/live/vmlinuz"
     cp "$EX/live/initrd"  "$ISODIR/live/initrd"
     unsquashfs -f -d "$ROOTFS" "$EX/live/filesystem.squashfs" >/dev/null
@@ -68,6 +72,11 @@ say "refreshing the KONEKT OS shell"
 mkdir -p "$ROOTFS/opt/konekt"
 cp "$REPO/demo.html"    "$ROOTFS/opt/konekt/index.html"
 cp "$REPO/version.json" "$ROOTFS/opt/konekt/version.json"
+# the service that lets the shell update the system and power it off
+cp "$REPO/iso/serve.py" "$ROOTFS/opt/konekt/serve.py"
+chmod +x "$ROOTFS/opt/konekt/serve.py"
+# a fleet points itself at its own mirror by writing this file
+mkdir -p "$ROOTFS/etc/konekt"
 
 say "rewriting the session"
 cat > "$ROOTFS/home/konekt/.bash_profile" <<'EOF'
@@ -78,11 +87,12 @@ EOF
 
 cat > "$ROOTFS/home/konekt/.xinitrc" <<'EOF'
 #!/bin/bash
-# KONEKT OS session. The shell is served over loopback so that its own update
-# check (version.json) works exactly as it does on a real install.
+# KONEKT OS session. The KONEKT service serves the shell over loopback and
+# gives it the things a page cannot do for itself: fetch a new build from the
+# update origin, verify it, install it, and power the machine off.
 xset -dpms s off s noblank 2>/dev/null || true
 
-python3 -m http.server 8923 --bind 127.0.0.1 --directory /opt/konekt >/dev/null 2>&1 &
+python3 /opt/konekt/serve.py >/dev/null 2>&1 &
 
 for _ in $(seq 1 60); do
   if (exec 3<>/dev/tcp/127.0.0.1/8923) 2>/dev/null; then exec 3>&- 3<&-; break; fi

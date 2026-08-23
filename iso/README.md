@@ -80,6 +80,52 @@ Built and booted on this machine (VirtualBox 7.1.8, headless, 4 GB RAM):
 Re-run that check any time with `.\iso\boot-test.ps1 -PowerOff`; screenshots
 land in `dist\boot-test\`.
 
+## Updating itself
+
+The shell can update the system it runs on. Booted as KONEKT OS there is a
+small service on 127.0.0.1 (`iso/serve.py`, started by the session) that does
+what a page cannot:
+
+| | |
+|---|---|
+| `GET /api/status` | what is installed, and where updates come from |
+| `GET /api/update/check` | ask the origin for its manifest (a page cannot — the origin is another site) |
+| `POST /api/update/apply` | download the build, verify its sha256 against the manifest, install it atomically |
+| `POST /api/power` | actually power off or reboot the machine |
+
+So "Обновить сейчас" in the update dialog stops being a simulation: the build
+is fetched from the origin, its checksum is compared with the one the manifest
+declares, and only a match is installed — over `os.replace`, so a failure
+leaves the running system exactly as it was. Then the session restarts into it.
+
+The origin is `https://konekt-os.vercel.app` unless you say otherwise:
+
+```bash
+konekt.update=http://10.0.2.2:8925     # on the kernel command line, for one boot
+echo "https://mirror.example.ru" > /etc/konekt/update-origin   # for a fleet
+```
+
+Run the updater's own tests without booting anything:
+
+```bash
+python tools/test-update.py
+```
+
+They stand up a fake origin and a fake installation and check that it reports
+what is installed, notices a newer build, installs it, and **refuses a payload
+whose bytes do not match the manifest** while leaving the system untouched.
+
+Whenever `demo.html` changes, re-stamp the manifest so the checksum matches, or
+the update will be correctly refused:
+
+```bash
+python tools/stamp-version.py
+```
+
+**On live media this is honest but temporary**: the ISO is read-only, so an
+installed update lives in the session's RAM overlay and the next boot is back
+to the build on the disc. Attach a persistence partition (below) and it stays.
+
 ## Persistence
 
 The live image is ephemeral by design: every boot is clean, which is the point

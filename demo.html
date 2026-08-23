@@ -1499,8 +1499,25 @@ function fsSizeOf(node){
    Checked once at every start — and from Settings or `update` in the shell.
    version.json is fetched fresh, compared, and the answer is yours: the OS
    never updates itself behind your back. Same flow on a phone and on a desk. */
-const OS_VERSION = '1.6.0';
-const OS_BUILD = 2760;
+/* When KONEKT OS is the operating system, its service answers on /api and the
+   update below stops being a simulation. In a browser tab SYS stays null. */
+let SYS = null;
+function sysProbe(){
+  return fetch('/api/status', { cache:'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { SYS = (d && d.ok) ? d : null; return SYS; })
+    .catch(() => { SYS = null; return null; });
+}
+function sysPost(path, body){
+  return fetch(path, {
+    method:'POST', cache:'no-store',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify(body || {})
+  }).then(r => r.json().then(d => { if(!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }));
+}
+
+const OS_VERSION = '1.7.0';
+const OS_BUILD = 2780;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -1528,8 +1545,15 @@ function closeModal(){
 function checkUpdate(opts){
   opts = opts || {};
   if(opts.loud) toast('Проверяем обновления…', 2000);
-  return fetch('version.json?t=' + Date.now(), { cache:'no-store' })
-    .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  /* On the OS the service asks the origin for us — a page cannot, the origin
+     is another site. In a tab we compare against the manifest we were served. */
+  const ask = SYS
+    ? fetch('/api/update/check', { cache:'no-store' })
+        .then(r => r.json())
+        .then(d => { if(!d.ok) throw new Error(d.error || 'update check failed'); return d.remote; })
+    : fetch('version.json?t=' + Date.now(), { cache:'no-store' })
+        .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  return ask
     .then(info => {
       if(!info || !info.version) throw new Error('bad manifest');
       const newer = cmpVer(info.version, OS_VERSION) > 0;
@@ -1568,8 +1592,13 @@ function showUpdate(info){
         (info.summary ? '<p>' + esc(info.summary) + '</p>' : '') +
         (notes.length ? '<ul class="km-notes">' + notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>' : '') +
       '</div>' +
-      '<div class="km-fine">Обновление атомарное: новая система пишется в свободный слот и включается целиком. ' +
-        'Если она не запустится, перезагрузка вернёт прежнюю. В этом демо слот — это перезагрузка страницы.</div>' +
+      '<div class="km-fine">' + (SYS
+        ? ('Сборка загрузится с ' + esc(SYS.origin || 'сервера обновлений') + ', её контрольная сумма ' +
+           'сверится с той, что объявлена в манифесте, и только потом заменит установленную. ' +
+           'Не совпадёт — не установится, система останется прежней.')
+        : ('Обновление атомарное: новая система пишется в свободный слот и включается целиком. ' +
+           'Если она не запустится, перезагрузка вернёт прежнюю. В этом демо слот — это перезагрузка страницы.')) +
+      '</div>' +
       '<div class="km-prog"><div class="km-bar"><i></i></div><div class="km-step"></div></div>' +
       '<div class="km-foot">' +
         '<button class="btn-line" id="kmLater">Позже</button>' +
@@ -1590,18 +1619,39 @@ function applyUpdate(info){
   m.onclick = null;
   prog.classList.add('on');
   store.set('kos.updateTried', info.version);
-  const steps = [['Загрузка образа', 35], ['Проверка подписи', 62], ['Запись в свободный слот', 88], ['Переключение слота', 100]];
+
+  const show = (label, pct) => { step.textContent = label; bar.style.width = pct + '%'; };
+  const finish = () => {
+    show('Готово — перезапуск', 100);
+    store.set('kos.updatedTo', info.version);
+    setTimeout(() => location.reload(), 750);
+  };
+
+  if(SYS){
+    /* the real thing: the service downloads, verifies and installs */
+    show('Загрузка сборки…', 30);
+    sysPost('/api/update/apply')
+      .then(d => {
+        show('Проверка контрольной суммы…', 70);
+        setTimeout(() => { show('Установка…', 92); setTimeout(finish, 400); }, 350);
+        return d;
+      })
+      .catch(err => {
+        show('Не удалось: ' + (err.message || 'ошибка обновления'), 100);
+        bar.style.background = 'var(--danger)';
+        notify({ title:'Обновление не установлено', body: String(err.message || err), icon: IC.globe });
+        setTimeout(() => { closeModal(); store.del('kos.updateTried'); }, 2600);
+      });
+    return;
+  }
+
+  /* in a browser tab there is nothing underneath to install into */
+  const steps = [['Загрузка образа', 35], ['Проверка целостности', 62], ['Запись в свободный слот', 88], ['Переключение слота', 100]];
   let i = 0;
   (function next(){
-    if(i >= steps.length){
-      step.textContent = 'Готово — перезапуск';
-      store.set('kos.updatedTo', info.version);
-      setTimeout(() => location.reload(), 750);
-      return;
-    }
+    if(i >= steps.length){ finish(); return; }
     const s = steps[i++];
-    step.textContent = s[0] + '…';
-    bar.style.width = s[1] + '%';
+    show(s[0] + '…', s[1]);
     setTimeout(next, 620);
   })();
 }
@@ -1733,6 +1783,10 @@ function lock(){
   document.addEventListener('keydown', onKey, { once:true });
 }
 function shutdown(){
+  if(SYS && SYS.canPower){
+    toast('Выключение…', 4000);
+    sysPost('/api/power', { action:'poweroff' }).catch(() => {});
+  }
   closeAllWindows();
   $('#shutMark').innerHTML = globe(44, 5);
   $('#shutMark').style.color = '#2a2a2a';
@@ -1768,7 +1822,8 @@ function enterDesktop(){
   }
   if(!updateChecked){
     updateChecked = true;
-    setTimeout(() => checkUpdate({}), 1400);
+    /* find out whether there is a system under us, then ask it about updates */
+    setTimeout(() => sysProbe().then(() => checkUpdate({})), 1400);
   }
 }
 
@@ -2682,6 +2737,7 @@ function launchTerm(w){
         ['Theme',    (settings.mode || 'dark') + ' / ' + settings.wall],
         ['Accent',   settings.accent],
         ['Browser',  'KONEKT BROWSER (preinstalled)'],
+        ['Updates',  SYS ? ('live from ' + (SYS.origin || 'origin')) : 'simulated (running in a browser)'],
         ['Storage',  Math.max(1, Math.round(fsSizeOf(FS) / 102.4) / 10) + ' KB of ∞'],
         ['User',     user.name]
       ];
@@ -2722,7 +2778,10 @@ function launchTerm(w){
     }},
     clear: { d:'wipe the screen (also Ctrl+L)', fn(){ $$('.tl', box).forEach(x => x.remove()); }},
     exit: { d:'close the terminal', fn(){ const w2 = winFor('term'); if(w2) closeWin(w2); }},
-    reboot: { d:'restart the headset', fn(){ closeAllWindows(); boot(); }},
+    reboot: { d:'restart the headset', fn(){
+      if(SYS && SYS.canPower){ printText('rebooting…', 'dim'); sysPost('/api/power', { action:'reboot' }).catch(() => {}); return; }
+      closeAllWindows(); boot();
+    }},
     shutdown: { d:'power off', fn(){ shutdown(); }}
   };
   box.addEventListener('click', () => { const i = $('.term-in', box); if(i && !getSelection().toString()) i.focus(); });
@@ -2864,6 +2923,8 @@ function launchSettings(w, arg){
       prevBtn.onclick = () => previewUpdate();
       upRow.appendChild(upBtn); upRow.appendChild(prevBtn);
       sw2.appendChild(upRow);
+      if(SYS) sw2.insertAdjacentHTML('beforeend',
+        '<div class="about-row"><span class="k">update origin</span><span class="v">' + esc(SYS.origin || '') + '</span></div>');
       sw2.insertAdjacentHTML('beforeend',
         '<div class="st-note">KONEKT OS checks for a new build every time it starts, on a phone exactly as on a desktop. ' +
         'It never installs anything without asking: you get the release notes and a choice. Updates are atomic — the new system ' +
@@ -2872,7 +2933,10 @@ function launchSettings(w, arg){
       const pw = sec('Power');
       const rowP = el('<div class="st-field"></div>');
       const rb = el('<button class="btn-line">Reboot</button>');
-      rb.onclick = () => { closeAllWindows(); boot(); };
+      rb.onclick = () => {
+        if(SYS && SYS.canPower){ toast('Перезагрузка…', 4000); sysPost('/api/power', { action:'reboot' }).catch(() => {}); return; }
+        closeAllWindows(); boot();
+      };
       const sd = el('<button class="btn-line">Shut down</button>');
       sd.onclick = () => shutdown();
       rowP.appendChild(rb); rowP.appendChild(sd);

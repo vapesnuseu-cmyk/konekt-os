@@ -113,6 +113,11 @@ say "installing the KONEKT OS shell into /opt/konekt"
 mkdir -p "$ROOTFS/opt/konekt"
 cp "$REPO/demo.html"    "$ROOTFS/opt/konekt/index.html"
 cp "$REPO/version.json" "$ROOTFS/opt/konekt/version.json"
+# the service that lets the shell update the system and power it off
+cp "$REPO/iso/serve.py" "$ROOTFS/opt/konekt/serve.py"
+chmod +x "$ROOTFS/opt/konekt/serve.py"
+# a fleet points itself at its own mirror by writing this file
+mkdir -p "$ROOTFS/etc/konekt"
 [ -f "$REPO/README.md" ] && cp "$REPO/README.md" "$ROOTFS/opt/konekt/README.md" || true
 
 # ---------------------------------------------------------------- session user
@@ -142,7 +147,7 @@ cat > "$ROOTFS/home/konekt/.xinitrc" <<'EOF'
 # update check (version.json) works exactly as it does on a real install.
 xset -dpms s off s noblank 2>/dev/null || true
 
-python3 -m http.server 8923 --bind 127.0.0.1 --directory /opt/konekt >/dev/null 2>&1 &
+python3 /opt/konekt/serve.py >/dev/null 2>&1 &
 for _ in $(seq 1 60); do
   if (exec 3<>/dev/tcp/127.0.0.1/8923) 2>/dev/null; then exec 3>&- 3<&-; break; fi
   sleep 0.25
