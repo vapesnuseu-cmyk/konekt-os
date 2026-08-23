@@ -860,6 +860,192 @@ input[type="range"]::-moz-range-thumb{width:13px;height:13px;background:var(--te
 .kb-note a{color:var(--dim)}
 .kb-note a:hover{color:var(--text)}
 
+/* ============================= DESKTOP 1.6: SPACES, TRAY PANELS, SEARCH, SWITCHER ============================= */
+:root{--screen-filter:none}
+#os,#cmenu,#ktoast,#kmodal,#search,#alttab,#ntoasts{filter:var(--screen-filter)}
+
+/* workspaces */
+#spaces{display:flex;align-items:center;gap:3px;padding-right:10px;margin-right:4px;border-right:1px solid var(--line-3)}
+.sp-pip{
+  position:relative;min-width:22px;height:16px;padding:0 4px;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8.5px;font-weight:700;letter-spacing:.06em;color:var(--dim-2);
+}
+.sp-pip:hover{border-color:var(--line-2);color:var(--text)}
+.sp-pip.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.sp-pip.has::after{content:"";position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:3px;height:3px;background:var(--accent)}
+.sp-pip.on.has::after{background:var(--text)}
+.win.offspace{display:none !important}
+
+/* tray buttons */
+.tr-b{
+  position:relative;width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  color:var(--dim);border-radius:var(--radius);
+}
+.tr-b:hover,.tr-b.on{background:var(--hover-2);color:var(--text)}
+.tr-b svg{width:15px;height:15px}
+.tr-badge{
+  position:absolute;top:1px;right:1px;min-width:13px;height:13px;padding:0 3px;
+  background:var(--accent);color:#fff;font-size:8px;font-weight:700;
+  display:none;align-items:center;justify-content:center;border-radius:7px;
+}
+.tr-badge.on{display:flex}
+
+/* shared drop-panel for the tray */
+.tpanel{
+  position:absolute;right:8px;bottom:calc(var(--bar) + 8px);width:min(320px,calc(100vw - 16px));z-index:250;
+  background:var(--bg);border:1px solid var(--line-2);display:none;flex-direction:column;
+  box-shadow:0 18px 50px rgba(0,0,0,.55);border-radius:var(--radius);max-height:min(72vh,560px);
+}
+.tpanel.on{display:flex}
+:root[data-appearance="glass"] .tpanel{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  border-color:var(--glass-brd);
+}
+.tp-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;
+  border-bottom:1px solid var(--line-3);
+  font-size:9.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+}
+.tp-head button{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim-2)}
+.tp-head button:hover{color:var(--text)}
+.tp-body{overflow-y:auto;padding:6px 0}
+
+/* quick settings */
+.qs-sec{padding:12px 16px;border-bottom:1px solid var(--line-3)}
+.qs-sec:last-child{border-bottom:0}
+.qs-l{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--dim-2);margin-bottom:9px}
+.qs-tiles{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.qs-tile{
+  display:flex;align-items:center;gap:9px;padding:10px;border:1px solid var(--line-3);
+  color:var(--dim);border-radius:var(--radius);font-size:10.5px;font-weight:600;letter-spacing:.06em;
+}
+.qs-tile svg{width:14px;height:14px;flex:none}
+.qs-tile:hover{border-color:var(--line-2);color:var(--text)}
+.qs-tile.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.qs-slider{display:flex;align-items:center;gap:11px;padding:5px 0}
+.qs-slider svg{width:14px;height:14px;color:var(--dim);flex:none}
+.qs-slider input[type=range]{flex:1;width:auto}
+.qs-slider b{font-family:var(--mono);font-size:10px;color:var(--dim);font-weight:400;min-width:34px;text-align:right}
+.qs-scheme{display:flex;gap:4px}
+.qs-scheme button{
+  flex:1;padding:8px 0;text-align:center;border:1px solid var(--line-3);color:var(--dim);
+  font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:var(--radius);
+}
+.qs-scheme button:hover{color:var(--text);border-color:var(--line-2)}
+.qs-scheme button.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.qs-acc{display:flex;gap:6px;flex-wrap:wrap}
+.qs-acc button{width:20px;height:20px;border:1px solid var(--line-3);border-radius:var(--radius)}
+.qs-acc button.on{outline:2px solid var(--text);outline-offset:2px}
+.qs-foot{display:flex;gap:6px;padding:12px 16px;border-top:1px solid var(--line-3)}
+.qs-foot button{
+  flex:1;padding:9px 0;text-align:center;border:1px solid var(--line-2);color:var(--text);
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:var(--radius);
+}
+.qs-foot button:hover{background:var(--hover-2)}
+
+/* notification centre */
+.nc-i{width:100%;display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line-3);text-align:left}
+.nc-i:last-child{border-bottom:0}
+.nc-i:hover{background:var(--hover)}
+.nc-i.unread{box-shadow:inset 2px 0 0 var(--accent)}
+.nc-ic{width:22px;height:22px;flex:none;color:var(--dim);display:flex;align-items:center;justify-content:center}
+.nc-ic svg{width:15px;height:15px}
+.nc-b{flex:1;min-width:0}
+.nc-t{font-size:11.5px;font-weight:700;letter-spacing:.04em;display:flex;justify-content:space-between;gap:8px}
+.nc-t time{font-size:9px;color:var(--dim-2);font-weight:400;flex:none;letter-spacing:.06em}
+.nc-d{font-size:11.5px;color:var(--dim);line-height:1.55;margin-top:3px;overflow-wrap:anywhere}
+.nc-empty{padding:34px 16px;text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim-2)}
+
+/* notification toasts */
+#ntoasts{
+  position:fixed;right:12px;bottom:calc(var(--bar) + 12px);z-index:230;
+  display:flex;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 24px));pointer-events:none;
+}
+.ntoast{
+  pointer-events:auto;background:var(--bg);border:1px solid var(--line-2);padding:12px 14px;
+  display:flex;gap:11px;box-shadow:0 12px 34px rgba(0,0,0,.5);border-radius:var(--radius);
+  animation:ntin .22s ease-out;
+}
+@keyframes ntin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+:root[data-appearance="glass"] .ntoast{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+}
+:root[data-dnd="1"] #ntoasts,:root[data-dnd="1"] #ktoast{display:none}
+
+/* universal search */
+#search{
+  position:fixed;inset:0;z-index:400;display:none;align-items:flex-start;justify-content:center;
+  padding:11vh 18px 18px;background:rgba(0,0,0,.6);
+}
+#search.on{display:flex}
+:root[data-theme="light"] #search{background:rgba(0,0,0,.34)}
+.se-card{
+  width:min(640px,100%);background:var(--bg);border:1px solid var(--line-2);
+  box-shadow:0 26px 70px rgba(0,0,0,.6);border-radius:var(--radius);display:flex;flex-direction:column;
+  max-height:76vh;overflow:hidden;
+}
+:root[data-appearance="glass"] .se-card{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+}
+.se-top{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line-3)}
+.se-top svg{width:16px;height:16px;color:var(--dim);flex:none}
+.se-in{flex:1;font-size:16px;letter-spacing:.01em;min-width:0}
+.se-in::placeholder{color:var(--dim-2)}
+.se-list{overflow-y:auto;flex:1}
+.se-group{font-size:8.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim-2);padding:12px 18px 5px}
+.se-i{width:100%;display:flex;align-items:center;gap:12px;padding:9px 18px;color:var(--text)}
+.se-i .ic{width:20px;height:20px;flex:none;color:var(--dim);display:flex;align-items:center;justify-content:center}
+.se-i .ic svg{width:15px;height:15px}
+.se-i .tx{flex:1;min-width:0}
+.se-i .t{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.se-i .s{font-size:10px;color:var(--dim-2);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.se-i:hover{background:var(--hover)}
+.se-i.sel{background:var(--hover-2);box-shadow:inset 2px 0 0 var(--accent)}
+.se-i.sel .ic{color:var(--text)}
+.se-foot{
+  display:flex;gap:16px;padding:9px 18px;border-top:1px solid var(--line-3);
+  font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim-2);flex-wrap:wrap;
+}
+.se-empty{padding:30px 18px;text-align:center;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim-2)}
+
+/* window switcher */
+#alttab{position:fixed;inset:0;z-index:420;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:20px}
+#alttab.on{display:flex}
+.at-card{
+  display:flex;gap:6px;padding:14px;background:var(--bg);border:1px solid var(--line-2);
+  max-width:100%;overflow-x:auto;border-radius:var(--radius);box-shadow:0 22px 60px rgba(0,0,0,.6);
+}
+:root[data-appearance="glass"] .at-card{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter:blur(var(--glass-blur)) saturate(1.7);
+}
+.at-i{
+  width:118px;flex:none;padding:16px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  border:1px solid transparent;color:var(--dim);border-radius:var(--radius);
+}
+.at-i svg{width:26px;height:26px}
+.at-i .t{
+  font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;text-align:center;
+  max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.at-i.sel{border-color:var(--text);background:var(--hover-2);color:var(--text)}
+
+/* keyboard map in Settings */
+.keys{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;align-items:baseline}
+.keys kbd{
+  font-family:var(--mono);font-size:10.5px;color:var(--text);border:1px solid var(--line);
+  padding:3px 7px;white-space:nowrap;border-radius:calc(var(--radius) / 2);
+}
+.keys span{font-size:12px;color:var(--dim)}
+
 /* ============================= SOFTWARE UPDATE ============================= */
 #kmodal{
   position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;
@@ -962,16 +1148,24 @@ input[type="range"]::-moz-range-thumb{width:13px;height:13px;background:var(--te
     <button id="stBtn" aria-label="Start"></button>
     <div id="tasks"></div>
     <div id="tray">
+      <div id="spaces" role="group" aria-label="Workspaces"></div>
       <div id="trUp"><i></i><span>uplink</span></div>
+      <button class="tr-b" id="trNotif" aria-label="Notifications"><span class="tr-badge" id="trBadge"></span></button>
+      <button class="tr-b" id="trQs" aria-label="Quick settings"></button>
       <button id="trClock" aria-label="Clock"><div class="h"></div><div class="d"></div></button>
     </div>
   </div>
   <div id="smenu"></div>
+  <div class="tpanel" id="qs" role="dialog" aria-label="Quick settings"></div>
+  <div class="tpanel" id="ncenter" role="dialog" aria-label="Notifications"></div>
 </div>
 
 <div id="cmenu"></div>
 <div id="ktoast" role="status"></div>
 <div id="kmodal" role="dialog" aria-modal="true" aria-label="Обновление системы"></div>
+<div id="ntoasts" aria-live="polite"></div>
+<div id="search" role="dialog" aria-modal="true" aria-label="Search"></div>
+<div id="alttab" aria-hidden="true"></div>
 
 <script>
 'use strict';
@@ -1052,6 +1246,13 @@ const IC = {
   ext:     ic('<path d="M13 4.5h6.5V11"/><path d="M19.5 4.5L11 13"/><path d="M17 14v5.5H4.5V7H10"/>'),
   browser: ic('<rect x="3" y="4.5" width="18" height="15"/><path d="M3 9h18"/><circle cx="6.2" cy="6.75" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="6.75" r=".9" fill="currentColor" stroke="none"/>'),
   up:      ic('<path d="M12 19V5.5M5.5 11.5L12 5l6.5 6.5"/>'),
+  bell:    ic('<path d="M6.5 10a5.5 5.5 0 0 1 11 0c0 4 1.5 5.5 1.5 5.5H5S6.5 14 6.5 10z"/><path d="M10.2 18.5a2 2 0 0 0 3.6 0"/>'),
+  sliders: ic('<path d="M4 7.5h16M4 16.5h16"/><circle cx="10" cy="7.5" r="2.2" fill="var(--bg)"/><circle cx="15" cy="16.5" r="2.2" fill="var(--bg)"/>'),
+  search:  ic('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l4.5 4.5"/>'),
+  sun:     ic('<circle cx="12" cy="12" r="4"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7"/>'),
+  moon:    ic('<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/>'),
+  dnd:     ic('<circle cx="12" cy="12" r="8.2"/><path d="M7.5 12h9"/>'),
+  grid4:   ic('<rect x="3.5" y="3.5" width="7" height="7"/><rect x="13.5" y="3.5" width="7" height="7"/><rect x="3.5" y="13.5" width="7" height="7"/><rect x="13.5" y="13.5" width="7" height="7"/>'),
   min:     '<svg viewBox="0 0 11 11" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1 5.5h9"/></svg>',
   max:     '<svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.2" y="1.2" width="8.6" height="8.6"/></svg>',
   restore: '<svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.2" y="3.2" width="6.6" height="6.6"/><path d="M3.4 3.2V1.2h6.4v6.4h-2"/></svg>',
@@ -1298,8 +1499,8 @@ function fsSizeOf(node){
    Checked once at every start — and from Settings or `update` in the shell.
    version.json is fetched fresh, compared, and the answer is yours: the OS
    never updates itself behind your back. Same flow on a phone and on a desk. */
-const OS_VERSION = '1.5.0';
-const OS_BUILD = 2701;
+const OS_VERSION = '1.6.0';
+const OS_BUILD = 2760;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -1339,6 +1540,8 @@ function checkUpdate(opts){
           toast('Обновление ' + info.version + ' не применилось');
           return { info, newer, stuck:true };
         }
+        notify({ app:'system', title: TT('updAvail'), body: 'KONEKT OS ' + info.version, icon: IC.globe,
+                 action: () => showUpdate(info) });
         showUpdate(info);
       } else if(opts.loud){
         toast('Установлена последняя версия — ' + OS_VERSION);
@@ -1556,8 +1759,12 @@ function enterDesktop(){
     store.del('kos.updatedTo');
     if(cmpVer(done, OS_VERSION) <= 0){
       store.del('kos.updateTried');
-      setTimeout(() => toast('Обновлено до KONEKT OS ' + OS_VERSION), 800);
+      setTimeout(() => notify({ title: TT('updDone'), body: 'KONEKT OS ' + OS_VERSION, icon: IC.globe }), 800);
     }
+  }
+  if(!store.get('kos.welcomed', false)){
+    store.set('kos.welcomed', true);
+    setTimeout(() => notify({ title: TT('welcome'), body: TT('welcomeB'), icon: IC.globe }), 1200);
   }
   if(!updateChecked){
     updateChecked = true;
@@ -1566,20 +1773,23 @@ function enterDesktop(){
 }
 
 /* ---------------------------- window manager ---------------------------- */
-const wm = { wins: [], z: 10 };
+const wm = { wins: [], z: 10, space: 0 };
 const isSmall = () => matchMedia('(max-width:720px)').matches;
 
 function winFor(appId){ return wm.wins.find(w => w.app === appId) || null; }
 function focusWin(w){
+  /* focusing a window that lives on another workspace takes you there */
+  if(spaceOf(w) !== wm.space){ wm.space = spaceOf(w); syncSpaces(); }
   wm.wins.forEach(x => x.el.classList.remove('focus'));
   w.el.classList.add('focus');
   w.el.style.zIndex = ++wm.z;
+  w.mru = ++mruSeq;
   tbSync();
 }
 function topWin(){
   let best = null;
   for(const w of wm.wins)
-    if(!w.min && (!best || +w.el.style.zIndex > +best.el.style.zIndex)) best = w;
+    if(!w.min && spaceOf(w) === wm.space && (!best || +w.el.style.zIndex > +best.el.style.zIndex)) best = w;
   return best;
 }
 function closeWin(w){
@@ -1621,7 +1831,8 @@ function createWin(appId, title, iconSvg, opts){
   const desk = $('#desk');
   const w = {
     app: appId, title, icon: iconSvg,
-    min: false, maxed: false, restoreRect: null, onClose: null
+    min: false, maxed: false, restoreRect: null, onClose: null,
+    space: wm.space, mru: ++mruSeq
   };
   const winEl = el(
     '<section class="win" role="dialog" aria-label="' + esc(title) + '">' +
@@ -1779,7 +1990,7 @@ function tbSync(){
   if(!box) return;
   box.innerHTML = '';
   const top = topWin();
-  wm.wins.forEach(w => {
+  wm.wins.filter(w => spaceOf(w) === wm.space).forEach(w => {
     const b = el('<button class="task' + (w.min ? ' minz' : '') + (w === top && !w.min ? ' on' : '') + '" aria-label="' + esc(w.title) + '">' +
       w.icon + '<span class="t">' + esc(w.title) + '</span></button>');
     b.onclick = () => {
@@ -1789,6 +2000,7 @@ function tbSync(){
     };
     box.appendChild(b);
   });
+  renderSpaces();
 }
 function clockTick(){
   const n = new Date();
@@ -1813,6 +2025,7 @@ function renderStartMenu(){
       '<div class="sm-d">KONEKT.WORLD headset · KonektOS ' + OS_VERSION + '</div></div>' +
     '</div>' +
     '<div class="sm-list">' +
+      '<button class="sm-i" data-act="search" aria-label="Search"><span class="ic">' + IC.search + '</span><span>' + TT('search') + '</span></button>' +
       Object.entries(APPS).map(([id, a]) =>
         '<button class="sm-i" data-app="' + id + '" aria-label="' + a.name + '">' + a.icon + '<span>' + a.name + '</span></button>').join('') +
     '</div>' +
@@ -1821,7 +2034,10 @@ function renderStartMenu(){
       '<button class="sm-p" data-p="reboot" aria-label="Reboot">' + IC.restart + '<span>reboot</span></button>' +
       '<button class="sm-p" data-p="shut" aria-label="Shut down">' + IC.power + '<span>shut down</span></button>' +
     '</div>';
-  $$('.sm-i', m).forEach(b => b.onclick = () => { toggleStart(false); openApp(b.dataset.app); });
+  $$('.sm-i', m).forEach(b => b.onclick = () => {
+    toggleStart(false);
+    if(b.dataset.act === 'search') searchOpen(); else openApp(b.dataset.app);
+  });
   $$('.sm-p', m).forEach(b => b.onclick = () => {
     toggleStart(false);
     if(b.dataset.p === 'lock') lock();
@@ -2490,13 +2706,27 @@ function launchTerm(w){
         box.scrollTop = box.scrollHeight;
       });
     }},
+    keys: { d:'the keyboard map', fn(){
+      const w2 = Math.max.apply(null, KEYMAP.map(k => k[0].length)) + 3;
+      KEYMAP.forEach(k => print('<span class="acc">' + esc(k[0].padEnd(w2)) + '</span>' + esc(k[1])));
+    }},
+    space: { d:'space [1-4] — show or switch workspace', fn(a){
+      if(!a[0]){ printText('workspace ' + (wm.space + 1) + ' of ' + SPACES); return; }
+      const n = parseInt(a[0], 10);
+      if(!(n >= 1 && n <= SPACES)){ printText('space: 1…' + SPACES, 'err'); return; }
+      gotoSpace(n - 1);
+    }},
+    notify: { d:'notify <text> — raise a notification', fn(a){
+      const body = a.join(' ').replace(/^"|"$/g, '');
+      notify({ title: body || 'ksh', body: body ? '' : 'empty notification', icon: IC.term });
+    }},
     clear: { d:'wipe the screen (also Ctrl+L)', fn(){ $$('.tl', box).forEach(x => x.remove()); }},
     exit: { d:'close the terminal', fn(){ const w2 = winFor('term'); if(w2) closeWin(w2); }},
     reboot: { d:'restart the headset', fn(){ closeAllWindows(); boot(); }},
     shutdown: { d:'power off', fn(){ shutdown(); }}
   };
   box.addEventListener('click', () => { const i = $('.term-in', box); if(i && !getSelection().toString()) i.focus(); });
-  print('<span class="dim">KonektOS ' + OS_VERSION + ' — ksh. Type "help". Nothing here leaves the device.</span>');
+  print('<span class="dim">KonektOS ' + OS_VERSION + ' — ksh. Type "help" or "keys". Nothing here leaves the device.</span>');
   inputRow();
 }
 
@@ -2612,6 +2842,13 @@ function launchSettings(w, arg){
         '<div class="about-row"><span class="k">local files</span><span class="v">' + Math.max(1, Math.round(fsSizeOf(FS) / 102.4) / 10) + ' KB</span></div>' +
         '<div class="about-row"><span class="k">foundation</span><span class="v">NKO Intl. Foundation of Technological Research &amp; Development</span></div>');
 
+      const kb = sec(TT('keyboard'));
+      kb.insertAdjacentHTML('beforeend',
+        '<div class="keys">' + KEYMAP.map(k =>
+          '<kbd>' + esc(k[0]) + '</kbd><span>' + esc(k[1]) + '</span>').join('') + '</div>' +
+        '<div class="st-note">Alt+Tab and the Super key belong to the machine you are on when KONEKT OS runs in a ' +
+        'browser tab, so the window switcher also answers to Alt+` and search to Ctrl+Space.</div>');
+
       const sw2 = sec('Software update');
       const upRow = el('<div class="st-field"></div>');
       const upBtn = el('<button class="btn-line">Check for updates</button>');
@@ -2659,10 +2896,435 @@ function launchSettings(w, arg){
 }
 
 /* ---------------------------- desktop assembly ---------------------------- */
+
+/* ============================================================================
+   DESKTOP 1.6 — workspaces, the window switcher, universal search,
+   quick settings and notifications. Everything here is local to the device.
+   ========================================================================= */
+
+/* new strings follow the family look's language; the module ships both */
+const TT_D = {
+  search:      { ru:'Поиск',                  en:'Search' },
+  searchPh:    { ru:'Приложения, файлы, действия…', en:'Apps, files, actions…' },
+  apps:        { ru:'Приложения',             en:'Apps' },
+  files:       { ru:'Файлы',                  en:'Files' },
+  settings:    { ru:'Настройки',              en:'Settings' },
+  actions:     { ru:'Действия',               en:'Actions' },
+  web:         { ru:'Веб',                    en:'Web' },
+  nothing:     { ru:'Ничего не найдено',      en:'Nothing found' },
+  open:        { ru:'открыть',                en:'open' },
+  navigate:    { ru:'выбрать',                en:'navigate' },
+  close:       { ru:'закрыть',                en:'close' },
+  space:       { ru:'Рабочий стол',           en:'Workspace' },
+  spaces:      { ru:'Рабочие столы',          en:'Workspaces' },
+  quick:       { ru:'Быстрые настройки',      en:'Quick settings' },
+  notifs:      { ru:'Уведомления',            en:'Notifications' },
+  clearAll:    { ru:'Очистить',               en:'Clear all' },
+  noNotifs:    { ru:'Уведомлений нет',        en:'No notifications' },
+  scheme:      { ru:'Схема',                  en:'Scheme' },
+  accent:      { ru:'Акцент',                 en:'Accent' },
+  screen:      { ru:'Экран',                  en:'Screen' },
+  bright:      { ru:'Яркость',                en:'Brightness' },
+  night:       { ru:'Ночной свет',            en:'Night light' },
+  dnd:         { ru:'Не беспокоить',          en:'Do not disturb' },
+  allSettings: { ru:'Все настройки',          en:'All settings' },
+  lock:        { ru:'Заблокировать',          en:'Lock' },
+  dark:        { ru:'Тёмная',                 en:'Dark' },
+  light:       { ru:'Светлая',                en:'Light' },
+  glass:       { ru:'Стекло',                 en:'Glass' },
+  welcome:     { ru:'Добро пожаловать в KONEKT OS', en:'Welcome to KONEKT OS' },
+  welcomeB:    { ru:'Ctrl+Space — поиск, Alt+` — окна, Ctrl+Alt+←/→ — рабочие столы.',
+                 en:'Ctrl+Space searches, Alt+` switches windows, Ctrl+Alt+←/→ moves between workspaces.' },
+  updAvail:    { ru:'Доступно обновление',    en:'Update available' },
+  updDone:     { ru:'Система обновлена',      en:'System updated' },
+  searchWeb:   { ru:'Искать в вебе',          en:'Search the web' },
+  openTerm:    { ru:'Открыть терминал',       en:'Open terminal' },
+  openBrowser: { ru:'Открыть браузер',        en:'Open KONEKT BROWSER' },
+  chkUpd:      { ru:'Проверить обновления',   en:'Check for updates' },
+  reboot:      { ru:'Перезагрузить',          en:'Reboot' },
+  shutdown:    { ru:'Выключить',              en:'Shut down' },
+  showDesk:    { ru:'Показать рабочий стол',  en:'Show desktop' },
+  keyboard:    { ru:'Клавиши',                en:'Keyboard' }
+};
+function TT(k){
+  const l = (typeof KONEKT_LOOK !== 'undefined' && KONEKT_LOOK.lang() === 'ru') ? 'ru' : 'en';
+  const e = TT_D[k];
+  return e ? (e[l] || e.en) : k;
+}
+
+const KEYMAP = [
+  ['Ctrl + Space', 'Search: apps, files, actions, the web'],
+  ['Alt + `', 'Switch windows (Alt+Tab where the host allows it)'],
+  ['Ctrl + Alt + ←/→', 'Previous / next workspace'],
+  ['Ctrl + Alt + 1…4', 'Go to a workspace'],
+  ['Ctrl + Alt + Shift + ←/→', 'Move the window to another workspace'],
+  ['Alt + Shift + ←/→', 'Tile the window left / right'],
+  ['Alt + Shift + ↑/↓', 'Maximise / restore, then minimise'],
+  ['Ctrl + Alt + T', 'Terminal'],
+  ['Ctrl + Alt + B', 'KONEKT BROWSER'],
+  ['Ctrl + Alt + D', 'Show the desktop'],
+  ['Esc', 'Close search, menus and panels']
+];
+
+/* ---------------------------- workspaces ---------------------------- */
+const SPACES = 4;
+let mruSeq = 1;
+function spaceOf(w){ return w.space || 0; }
+function winsOnSpace(n){ return wm.wins.filter(w => spaceOf(w) === n); }
+function renderSpaces(){
+  const box = $('#spaces');
+  if(!box) return;
+  box.innerHTML = '';
+  for(let i = 0; i < SPACES; i++){
+    const has = winsOnSpace(i).length > 0;
+    const b = el('<button class="sp-pip' + (i === wm.space ? ' on' : '') + (has ? ' has' : '') + '"' +
+      ' aria-label="' + TT('space') + ' ' + (i + 1) + '" aria-pressed="' + (i === wm.space) + '">' + (i + 1) + '</button>');
+    b.onclick = e => { e.stopPropagation(); gotoSpace(i); };
+    box.appendChild(b);
+  }
+}
+function syncSpaces(){
+  wm.wins.forEach(w => w.el.classList.toggle('offspace', spaceOf(w) !== wm.space));
+  renderSpaces();
+  tbSync();
+}
+function gotoSpace(n, quiet){
+  n = ((n % SPACES) + SPACES) % SPACES;
+  if(n === wm.space) return;
+  wm.space = n;
+  syncSpaces();
+  const t = topWin();
+  if(t) focusWin(t);
+  if(!quiet) toast(TT('space') + ' ' + (n + 1), 1400);
+}
+function moveActiveToSpace(n){
+  const w = topWin();
+  if(!w) return;
+  n = ((n % SPACES) + SPACES) % SPACES;
+  if(n === spaceOf(w)) return;
+  w.space = n;
+  syncSpaces();
+  toast(w.title + ' → ' + TT('space') + ' ' + (n + 1), 1600);
+}
+function showDesktop(){
+  const here = winsOnSpace(wm.space);
+  const anyOpen = here.some(w => !w.min);
+  here.forEach(w => { if(anyOpen){ if(!w.min) minWin(w); } else if(w.min) unminWin(w); });
+}
+
+/* ---------------------------- window switcher ---------------------------- */
+let atOpen = false, atList = [], atIdx = 0;
+function focusOrRestore(w){ if(w.min) unminWin(w); else focusWin(w); }
+function atRender(){
+  const box = $('#alttab');
+  box.innerHTML = '<div class="at-card">' + atList.map((w, i) =>
+    '<div class="at-i' + (i === atIdx ? ' sel' : '') + '">' + w.icon +
+    '<span class="t">' + esc(w.title) + '</span></div>').join('') + '</div>';
+  box.classList.add('on');
+}
+function atStep(dir){
+  if(!atOpen){
+    atList = winsOnSpace(wm.space).slice().sort((a, b) => (b.mru || 0) - (a.mru || 0));
+    if(!atList.length) return;
+    if(atList.length === 1){ focusOrRestore(atList[0]); return; }
+    atOpen = true;
+    atIdx = dir > 0 ? 1 : atList.length - 1;
+  } else {
+    atIdx = (atIdx + dir + atList.length) % atList.length;
+  }
+  atRender();
+}
+function atCommit(){
+  if(!atOpen) return;
+  atOpen = false;
+  $('#alttab').classList.remove('on');
+  const w = atList[atIdx];
+  if(w && wm.wins.indexOf(w) >= 0) focusOrRestore(w);
+}
+
+/* ---------------------------- tiling ---------------------------- */
+function tileActive(mode){
+  const w = topWin();
+  if(!w || isSmall()) return;
+  const desk = $('#desk');
+  if(mode === 'max'){ maxWin(w, true); return; }
+  if(mode === 'restore'){ if(w.maxed) maxWin(w, false); else minWin(w); return; }
+  if(w.maxed) maxWin(w, false);
+  const r = snapRect(mode, desk.clientWidth, desk.clientHeight);
+  if(!r) return;
+  w.restoreRect = { l: w.el.offsetLeft, t: w.el.offsetTop, w: w.el.offsetWidth, h: w.el.offsetHeight };
+  Object.assign(w.el.style, { left: r.l + 'px', top: r.t + 'px', width: r.w + 'px', height: r.h + 'px' });
+}
+
+/* ---------------------------- screen (brightness / night light / DND) ---------------------------- */
+let screenCfg = Object.assign({ bright:100, night:false, dnd:false }, store.get('kos.screen', {}));
+function applyScreen(save){
+  const f = [];
+  const b = Math.max(35, Math.min(100, parseInt(screenCfg.bright, 10) || 100));
+  if(b !== 100) f.push('brightness(' + (b / 100).toFixed(2) + ')');
+  if(screenCfg.night) f.push('sepia(.34) saturate(1.12) hue-rotate(-9deg)');
+  document.documentElement.style.setProperty('--screen-filter', f.length ? f.join(' ') : 'none');
+  document.documentElement.dataset.dnd = screenCfg.dnd ? '1' : '0';
+  if(save !== false) store.set('kos.screen', screenCfg);
+}
+
+/* ---------------------------- notifications ---------------------------- */
+let NOTIF = store.get('kos.notif', []);
+function notifSave(){ NOTIF = NOTIF.slice(0, 40); store.set('kos.notif', NOTIF); }
+function badgeSync(){
+  const b = $('#trBadge');
+  if(!b) return;
+  const n = NOTIF.filter(x => !x.read).length;
+  b.textContent = n > 9 ? '9+' : String(n);
+  b.classList.toggle('on', n > 0);
+}
+const NOTIF_ACTIONS = {};   /* id -> fn, for the session only */
+function notify(o){
+  const rec = {
+    id: 'n' + Date.now() + Math.floor(Math.random() * 1000),
+    app: o.app || 'system', title: o.title || '', body: o.body || '',
+    ts: Date.now(), read: false
+  };
+  NOTIF.unshift(rec);
+  notifSave();
+  badgeSync();
+  if(o.action) NOTIF_ACTIONS[rec.id] = o.action;
+  if(!screenCfg.dnd) ntoast(rec, o.icon);
+  if($('#ncenter').classList.contains('on')) ncRender();
+  return rec;
+}
+function ntoast(rec, icon){
+  const box = $('#ntoasts');
+  if(!box) return;
+  const t = el('<button class="ntoast">' +
+    '<span class="nc-ic">' + (icon || IC.bell) + '</span>' +
+    '<span class="nc-b"><span class="nc-t">' + esc(rec.title) + '</span>' +
+    (rec.body ? '<span class="nc-d">' + esc(rec.body) + '</span>' : '') + '</span></button>');
+  t.onclick = () => { runNotif(rec.id); t.remove(); };
+  box.appendChild(t);
+  setTimeout(() => { if(t.parentNode) t.remove(); }, 5200);
+  while(box.children.length > 3) box.removeChild(box.firstChild);
+}
+function runNotif(id){
+  const rec = NOTIF.find(x => x.id === id);
+  if(rec && !rec.read){ rec.read = true; notifSave(); badgeSync(); }
+  const fn = NOTIF_ACTIONS[id];
+  if(fn) try{ fn(); }catch(e){}
+}
+function ncRender(){
+  const p = $('#ncenter');
+  const rows = NOTIF.length ? NOTIF.map(n => {
+    const d = new Date(n.ts);
+    return '<button class="nc-i' + (n.read ? '' : ' unread') + '" data-id="' + n.id + '">' +
+      '<span class="nc-ic">' + IC.bell + '</span><span class="nc-b">' +
+      '<span class="nc-t">' + esc(n.title) + '<time>' + two(d.getHours()) + ':' + two(d.getMinutes()) + '</time></span>' +
+      (n.body ? '<span class="nc-d">' + esc(n.body) + '</span>' : '') +
+      '</span></button>';
+  }).join('') : '<div class="nc-empty">' + TT('noNotifs') + '</div>';
+  p.innerHTML =
+    '<div class="tp-head"><span>' + TT('notifs') + '</span>' +
+      (NOTIF.length ? '<button id="ncClear">' + TT('clearAll') + '</button>' : '') + '</div>' +
+    '<div class="tp-body">' + rows + '</div>';
+  const cl = $('#ncClear', p);
+  if(cl) cl.onclick = () => { NOTIF = []; notifSave(); badgeSync(); ncRender(); };
+  $$('.nc-i', p).forEach(b => b.onclick = () => { runNotif(b.dataset.id); ncRender(); });
+}
+function ncToggle(on){
+  const p = $('#ncenter');
+  const want = on === undefined ? !p.classList.contains('on') : on;
+  if(want){ qsToggle(false); toggleStart(false); ncRender(); }
+  p.classList.toggle('on', want);
+  $('#trNotif').classList.toggle('on', want);
+  if(want){
+    NOTIF.forEach(n => n.read = true);
+    notifSave();
+    setTimeout(badgeSync, 900);
+  }
+}
+
+/* ---------------------------- quick settings ---------------------------- */
+function qsRender(){
+  const p = $('#qs');
+  const look = KONEKT_LOOK.get();
+  const schemes = [['dark', TT('dark')], ['light', TT('light')], ['glass', TT('glass')]];
+  p.innerHTML =
+    '<div class="tp-head"><span>' + TT('quick') + '</span></div>' +
+    '<div class="tp-body">' +
+      '<div class="qs-sec"><div class="qs-l">' + TT('scheme') + '</div><div class="qs-scheme">' +
+        schemes.map(m => '<button data-mode="' + m[0] + '" class="' + (look.mode === m[0] ? 'on' : '') + '">' + m[1] + '</button>').join('') +
+      '</div></div>' +
+      '<div class="qs-sec"><div class="qs-l">' + TT('accent') + '</div><div class="qs-acc">' +
+        KONEKT_LOOK.ACCENTS.map(a => '<button data-acc="' + a[0] + '" title="' + a[1] + '" aria-label="' + a[1] + '"' +
+          ' class="' + (String(look.accent).toLowerCase() === a[0].toLowerCase() ? 'on' : '') + '" style="background:' + a[0] + '"></button>').join('') +
+      '</div></div>' +
+      '<div class="qs-sec"><div class="qs-l">' + TT('screen') + '</div>' +
+        '<div class="qs-slider">' + IC.sun +
+          '<input type="range" id="qsBright" min="35" max="100" step="5" value="' + screenCfg.bright + '" aria-label="' + TT('bright') + '">' +
+          '<b>' + screenCfg.bright + '%</b></div>' +
+        '<div class="qs-tiles" style="margin-top:8px">' +
+          '<button class="qs-tile' + (screenCfg.night ? ' on' : '') + '" id="qsNight">' + IC.moon + '<span>' + TT('night') + '</span></button>' +
+          '<button class="qs-tile' + (screenCfg.dnd ? ' on' : '') + '" id="qsDnd">' + IC.dnd + '<span>' + TT('dnd') + '</span></button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="qs-sec"><div class="qs-l">' + TT('spaces') + '</div><div class="qs-tiles">' +
+        [0, 1, 2, 3].map(i => '<button class="qs-tile' + (i === wm.space ? ' on' : '') + '" data-space="' + i + '">' +
+          IC.grid4 + '<span>' + (i + 1) + '</span></button>').join('') +
+      '</div></div>' +
+    '</div>' +
+    '<div class="qs-foot">' +
+      '<button id="qsAll">' + TT('allSettings') + '</button>' +
+      '<button id="qsLock">' + TT('lock') + '</button>' +
+    '</div>';
+
+  $$('[data-mode]', p).forEach(b => b.onclick = () => { KONEKT_LOOK.set({ mode: b.dataset.mode }); qsRender(); refreshSettings(); });
+  $$('[data-acc]', p).forEach(b => b.onclick = () => { KONEKT_LOOK.set({ accent: b.dataset.acc }); qsRender(); refreshSettings(); });
+  $$('[data-space]', p).forEach(b => b.onclick = () => { gotoSpace(+b.dataset.space); qsRender(); });
+  const br = $('#qsBright', p);
+  br.oninput = () => {
+    screenCfg.bright = +br.value;
+    applyScreen();
+    const lab = br.parentNode.querySelector('b');
+    if(lab) lab.textContent = screenCfg.bright + '%';
+  };
+  $('#qsNight', p).onclick = () => { screenCfg.night = !screenCfg.night; applyScreen(); qsRender(); };
+  $('#qsDnd', p).onclick = () => { screenCfg.dnd = !screenCfg.dnd; applyScreen(); qsRender(); };
+  $('#qsAll', p).onclick = () => { qsToggle(false); openApp('set', { pane:'appearance' }); };
+  $('#qsLock', p).onclick = () => { qsToggle(false); lock(); };
+}
+function qsToggle(on){
+  const p = $('#qs');
+  const want = on === undefined ? !p.classList.contains('on') : on;
+  if(want){ ncToggle(false); toggleStart(false); qsRender(); }
+  p.classList.toggle('on', want);
+  $('#trQs').classList.toggle('on', want);
+}
+
+/* ---------------------------- universal search ---------------------------- */
+let seItems = [], seSel = 0;
+function fsSearch(q, limit){
+  const out = [], ql = q.toLowerCase();
+  (function walk(parts, depth){
+    if(out.length >= limit || depth > 4) return;
+    const node = fsGet(parts);
+    if(!node || node.type !== 'dir') return;
+    Object.keys(node.children).sort().forEach(name => {
+      if(out.length >= limit) return;
+      const c = node.children[name];
+      if(name.toLowerCase().indexOf(ql) >= 0) out.push({ name, parts: parts.concat(name), node: c });
+      if(c.type === 'dir') walk(parts.concat(name), depth + 1);
+    });
+  })([], 0);
+  return out;
+}
+function searchBuild(q){
+  const items = [];
+  const ql = q.trim().toLowerCase();
+  const hit = t => !ql || String(t).toLowerCase().indexOf(ql) >= 0;
+
+  Object.entries(APPS).forEach(([id, a]) => {
+    if(hit(a.name)) items.push({ g: TT('apps'), t: a.name, s: '', icon: a.icon, run: () => openApp(id) });
+  });
+
+  if(ql){
+    fsSearch(ql, 6).forEach(f => items.push({
+      g: TT('files'), t: f.name, s: fsTilde(f.parts.slice(0, -1)),
+      icon: f.node.type === 'dir' ? IC.files : IC.file,
+      run: () => f.node.type === 'dir' ? openApp('files', { path: f.parts }) : openApp('notes', { path: f.parts })
+    }));
+  }
+
+  [['Appearance', 'appearance'], ['Account', 'account'], ['System', 'system']].forEach(pane => {
+    if(hit(pane[0])) items.push({
+      g: TT('settings'), t: pane[0], s: 'Settings', icon: IC.set,
+      run: () => openApp('set', { pane: pane[1] })
+    });
+  });
+
+  const acts = [
+    [TT('openTerm'), IC.term, () => openApp('term')],
+    [TT('openBrowser'), IC.browser, () => openApp('web')],
+    [TT('chkUpd'), IC.globe, () => checkUpdate({ loud:true })],
+    [TT('showDesk'), IC.grid4, () => showDesktop()],
+    [TT('dark'), IC.moon, () => KONEKT_LOOK.set({ mode:'dark' })],
+    [TT('light'), IC.sun, () => KONEKT_LOOK.set({ mode:'light' })],
+    [TT('glass'), IC.sliders, () => KONEKT_LOOK.set({ mode:'glass' })],
+    [TT('lock'), IC.lock, () => lock()],
+    [TT('reboot'), IC.restart, () => { closeAllWindows(); boot(); }],
+    [TT('shutdown'), IC.power, () => shutdown()]
+  ];
+  acts.forEach(a => { if(hit(a[0])) items.push({ g: TT('actions'), t: a[0], s: '', icon: a[1], run: a[2] }); });
+
+  if(ql){
+    items.push({
+      g: TT('web'), t: TT('searchWeb') + ': ' + q.trim(), s: 'KONEKT BROWSER', icon: IC.search,
+      run: () => openApp('web', { url: 'https://yandex.ru/search/?text=' + encodeURIComponent(q.trim()) })
+    });
+  }
+  return items.slice(0, 24);
+}
+function searchRender(){
+  const list = $('#search .se-list');
+  if(!list) return;
+  if(!seItems.length){ list.innerHTML = '<div class="se-empty">' + TT('nothing') + '</div>'; return; }
+  let html = '', group = null;
+  seItems.forEach((it, i) => {
+    if(it.g !== group){ group = it.g; html += '<div class="se-group">' + esc(group) + '</div>'; }
+    html += '<button class="se-i' + (i === seSel ? ' sel' : '') + '" data-i="' + i + '">' +
+      '<span class="ic">' + it.icon + '</span><span class="tx"><span class="t">' + esc(it.t) + '</span>' +
+      (it.s ? '<span class="s">' + esc(it.s) + '</span>' : '') + '</span></button>';
+  });
+  list.innerHTML = html;
+  $$('.se-i', list).forEach(b => b.onclick = () => { seSel = +b.dataset.i; searchRun(); });
+  const sel = $('.se-i.sel', list);
+  if(sel && sel.scrollIntoView) sel.scrollIntoView({ block:'nearest' });
+}
+function searchRun(){
+  const it = seItems[seSel];
+  searchClose();
+  if(it && it.run) try{ it.run(); }catch(e){}
+}
+function searchClose(){
+  const box = $('#search');
+  box.classList.remove('on');
+  box.innerHTML = '';
+}
+function searchOpen(prefill){
+  const box = $('#search');
+  toggleStart(false); qsToggle(false); ncToggle(false); hideCMenu();
+  box.innerHTML =
+    '<div class="se-card">' +
+      '<div class="se-top">' + IC.search +
+        '<input class="se-in" id="seIn" placeholder="' + TT('searchPh') + '" autocomplete="off" spellcheck="false" aria-label="' + TT('search') + '">' +
+      '</div>' +
+      '<div class="se-list"></div>' +
+      '<div class="se-foot"><span>↑↓ ' + TT('navigate') + '</span><span>⏎ ' + TT('open') + '</span><span>ESC ' + TT('close') + '</span></div>' +
+    '</div>';
+  box.classList.add('on');
+  const inp = $('#seIn', box);
+  const refresh = () => { seItems = searchBuild(inp.value); seSel = 0; searchRender(); };
+  inp.oninput = refresh;
+  inp.onkeydown = e => {
+    if(e.key === 'ArrowDown'){ e.preventDefault(); seSel = Math.min(seSel + 1, seItems.length - 1); searchRender(); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); seSel = Math.max(seSel - 1, 0); searchRender(); }
+    else if(e.key === 'Enter'){ e.preventDefault(); searchRun(); }
+    else if(e.key === 'Escape'){ e.preventDefault(); searchClose(); }
+    e.stopPropagation();
+  };
+  box.onclick = e => { if(e.target === box) searchClose(); };
+  if(prefill) inp.value = prefill;
+  refresh();
+  setTimeout(() => inp.focus(), 20);
+}
+
 function buildDesktop(){
   deskBuilt = true;
   $('#stBtn').innerHTML = globe(22, 6);
   $('#stBtn').onclick = e => { e.stopPropagation(); toggleStart(); };
+  $('#trNotif').innerHTML = IC.bell + '<span class="tr-badge" id="trBadge"></span>';
+  $('#trQs').innerHTML = IC.sliders;
+  $('#trNotif').onclick = e => { e.stopPropagation(); ncToggle(); };
+  $('#trQs').onclick = e => { e.stopPropagation(); qsToggle(); };
+  $('#trClock').onclick = e => { e.stopPropagation(); ncToggle(); };
   $('#desk').addEventListener('click', () => {
     toggleStart(false);
     $$('.dico').forEach(x => x.classList.remove('sel'));
@@ -2687,10 +3349,39 @@ function buildDesktop(){
   document.addEventListener('click', e => {
     if(!e.target.closest('#cmenu')) hideCMenu();
     if(!e.target.closest('#smenu') && !e.target.closest('#stBtn')) toggleStart(false);
+    if(!e.target.closest('#qs') && !e.target.closest('#trQs')) qsToggle(false);
+    if(!e.target.closest('#ncenter') && !e.target.closest('#trNotif') && !e.target.closest('#trClock')) ncToggle(false);
   });
+  /* Keyboard. Alt+Tab and the Super key belong to the host OS when this runs in a
+     browser tab, so the switcher answers to Alt+` as well and search to Ctrl+Space. */
   document.addEventListener('keydown', e => {
-    if(e.key === 'Escape'){ toggleStart(false); hideCMenu(); }
+    const t = e.target || {};
+    const typing = /^(INPUT|TEXTAREA)$/.test(t.tagName || '') || t.isContentEditable;
+    if(e.key === 'Escape'){
+      toggleStart(false); hideCMenu(); qsToggle(false); ncToggle(false);
+      if($('#search').classList.contains('on')) searchClose();
+      return;
+    }
+    if(e.code === 'Space' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); searchOpen(); return; }
+    if(e.altKey && (e.key === 'Tab' || e.code === 'Backquote')){ e.preventDefault(); atStep(e.shiftKey ? -1 : 1); return; }
+    if(e.ctrlKey && e.altKey){
+      const k = (e.key || '').toLowerCase();
+      if(k === 't'){ e.preventDefault(); openApp('term'); return; }
+      if(k === 'b'){ e.preventDefault(); openApp('web'); return; }
+      if(k === 'd'){ e.preventDefault(); showDesktop(); return; }
+      if(e.key === 'ArrowRight'){ e.preventDefault(); e.shiftKey ? moveActiveToSpace(wm.space + 1) : gotoSpace(wm.space + 1); return; }
+      if(e.key === 'ArrowLeft'){ e.preventDefault(); e.shiftKey ? moveActiveToSpace(wm.space - 1) : gotoSpace(wm.space - 1); return; }
+      if(/^[1-4]$/.test(e.key)){ e.preventDefault(); gotoSpace(+e.key - 1); return; }
+    }
+    if(e.altKey && e.shiftKey && !typing){
+      if(e.key === 'ArrowLeft'){ e.preventDefault(); tileActive('left'); return; }
+      if(e.key === 'ArrowRight'){ e.preventDefault(); tileActive('right'); return; }
+      if(e.key === 'ArrowUp'){ e.preventDefault(); tileActive('max'); return; }
+      if(e.key === 'ArrowDown'){ e.preventDefault(); tileActive('restore'); return; }
+    }
   });
+  document.addEventListener('keyup', e => { if(e.key === 'Alt') atCommit(); });
+  addEventListener('blur', () => atCommit());
   addEventListener('online', uplinkSync);
   addEventListener('offline', uplinkSync);
   addEventListener('resize', () => {
@@ -2703,12 +3394,16 @@ function buildDesktop(){
     });
   });
   uplinkSync();
+  applyScreen(false);
+  badgeSync();
+  syncSpaces();
   tbSync();
 }
 
 /* ---------------------------- init ---------------------------- */
 fsLoad();
 applyDesk(settings);
+applyScreen(false);
 setInterval(clockTick, 1000);
 clockTick();
 boot();
