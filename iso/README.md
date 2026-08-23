@@ -63,6 +63,23 @@ DD mode) and boot from it. Nothing is written to the internal disk.
 - Networking is DHCP on the first wired interface, which is what a VM's NAT
   adapter gives you — so KONEKT and the browser reach the internet.
 
+## What has been verified
+
+Built and booted on this machine (VirtualBox 7.1.8, headless, 4 GB RAM):
+
+| | |
+|---|---|
+| ISO | 439 MB, hybrid BIOS + UEFI, volume `KONEKT_OS` |
+| Kernel | `6.12.94+deb13-amd64` — Debian 6.12.94-1, the trixie LTS line |
+| Boot | GRUB to the KONEKT OS first-run screen in roughly 90 seconds cold |
+| Session | fullscreen, no browser chrome, no Linux login, mouse cursor present |
+| Network | DHCP on the NAT adapter; the tray shows UPLINK green |
+| Clock | reads local time (the RTC is treated as local, as VirtualBox presents it) |
+| Verified in the VM | typing a name into first-run, the desktop and its icons, `Ctrl+Space` search returning apps/actions/web, `Ctrl+Alt+2` switching workspace, the welcome notification |
+
+Re-run that check any time with `.\iso\boot-test.ps1 -PowerOff`; screenshots
+land in `dist\boot-test\`.
+
 ## Persistence
 
 The live image is ephemeral by design: every boot is clean, which is the point

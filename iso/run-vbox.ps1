@@ -25,6 +25,18 @@ $ErrorActionPreference = 'Stop'
 $VBoxManage = Join-Path $env:ProgramFiles 'Oracle\VirtualBox\VBoxManage.exe'
 if (-not (Test-Path $VBoxManage)) { throw "VBoxManage not found at $VBoxManage — is VirtualBox installed?" }
 
+# VBoxManage writes to stderr for harmless things (a VM that is already off).
+# Under $ErrorActionPreference='Stop' that would be fatal, so best-effort calls
+# go through here.
+function Invoke-VBoxQuiet {
+    param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $VBoxArgs)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $VBoxManage @VBoxArgs 2>&1 | Out-Null } catch { }
+    $ErrorActionPreference = $prev
+    $global:LASTEXITCODE = 0
+}
+
 if (-not $Iso) {
     $dist = Join-Path (Split-Path $PSScriptRoot -Parent) 'dist'
     $newest = Get-ChildItem -Path $dist -Filter 'konekt-os-*.iso' -ErrorAction SilentlyContinue |
@@ -38,9 +50,9 @@ Write-Host "ISO:  $Iso"
 $existing = & $VBoxManage list vms | Select-String -SimpleMatch "`"$Name`""
 if ($existing -and $Recreate) {
     Write-Host "Removing the previous '$Name' VM (its virtual disks go with it)."
-    & $VBoxManage controlvm $Name poweroff 2>$null | Out-Null
+    Invoke-VBoxQuiet controlvm $Name poweroff
     Start-Sleep -Seconds 2
-    & $VBoxManage unregistervm $Name --delete | Out-Null
+    Invoke-VBoxQuiet unregistervm $Name --delete
     $existing = $null
 }
 if ($existing) {

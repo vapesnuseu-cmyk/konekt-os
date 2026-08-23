@@ -15,13 +15,25 @@ param(
     [string] $Name        = 'KONEKT OS',
     [int]    $MemoryMB    = 4096,
     [int]    $WaitSeconds = 120,
-    [int[]]  $ShotAt      = @(20, 45, 75, 110),
+    [string] $ShotAt      = '20,45,75,110',   # comma-separated: survives `powershell -File`
     [switch] $PowerOff
 )
 
 $ErrorActionPreference = 'Stop'
 $VBoxManage = Join-Path $env:ProgramFiles 'Oracle\VirtualBox\VBoxManage.exe'
 if (-not (Test-Path $VBoxManage)) { throw "VBoxManage not found at $VBoxManage" }
+
+# VBoxManage writes to stderr for harmless things (a VM that is already off).
+# Under $ErrorActionPreference='Stop' that would be fatal, so best-effort calls
+# go through here.
+function Invoke-VBoxQuiet {
+    param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $VBoxArgs)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $VBoxManage @VBoxArgs 2>&1 | Out-Null } catch { }
+    $ErrorActionPreference = $prev
+    $global:LASTEXITCODE = 0
+}
 
 $repo = Split-Path $PSScriptRoot -Parent
 if (-not $Iso) {
@@ -38,9 +50,9 @@ Write-Host ("size: {0:N0} MB" -f ((Get-Item $Iso).Length / 1MB))
 
 # recreate the VM so every run starts from the same place
 if (& $VBoxManage list vms | Select-String -SimpleMatch "`"$Name`"") {
-    & $VBoxManage controlvm $Name poweroff 2>$null | Out-Null
+    Invoke-VBoxQuiet controlvm $Name poweroff
     Start-Sleep -Seconds 2
-    & $VBoxManage unregistervm $Name --delete 2>$null | Out-Null
+    Invoke-VBoxQuiet unregistervm $Name --delete
 }
 & $VBoxManage createvm --name $Name --ostype Debian_64 --register | Out-Null
 & $VBoxManage modifyvm $Name `
@@ -56,12 +68,13 @@ Write-Host 'Starting headless...'
 & $VBoxManage startvm $Name --type headless | Out-Null
 
 $taken = @()
-foreach ($t in ($ShotAt | Where-Object { $_ -le $WaitSeconds } | Sort-Object)) {
+$shotTimes = @($ShotAt -split ',' | ForEach-Object { [int]$_.Trim() })
+foreach ($t in ($shotTimes | Where-Object { $_ -le $WaitSeconds } | Sort-Object)) {
     $elapsed = if ($taken.Count) { $taken[-1] } else { 0 }
     Start-Sleep -Seconds ([Math]::Max(0, $t - $elapsed))
     $file = Join-Path $shots ("shot-{0}s.png" -f $t)
     try {
-        & $VBoxManage controlvm $Name screenshotpng $file 2>$null | Out-Null
+        Invoke-VBoxQuiet controlvm $Name screenshotpng $file
         if (Test-Path $file) {
             Write-Host ("  {0,4}s  {1}  ({2:N0} KB)" -f $t, (Split-Path $file -Leaf), ((Get-Item $file).Length / 1KB))
         }
@@ -75,7 +88,7 @@ Write-Host "VM state: $state"
 Write-Host "Screenshots: $shots"
 
 if ($PowerOff) {
-    & $VBoxManage controlvm $Name poweroff | Out-Null
+    Invoke-VBoxQuiet controlvm $Name poweroff
     Write-Host 'Powered off.'
 } else {
     Write-Host "Still running. Power off with: & '$VBoxManage' controlvm '$Name' poweroff"
