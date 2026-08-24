@@ -25,11 +25,14 @@ What goes in:
 
 | Piece | Why |
 |---|---|
-| Debian stable (`trixie`), `main` + `non-free-firmware` | proven base, security updates, firmware for real laptops |
+| Debian stable (`trixie`), `main` + `non-free-firmware` | proven base, security updates |
 | `live-boot` | boots the squashfs image, with optional persistence |
 | X + Chromium in kiosk mode | the engine the shell needs; KONEKT BROWSER is Chromium too |
-| `python3 -m http.server` on 127.0.0.1:8923 | serves the shell so its own update check works exactly as on a real install |
+| the KONEKT service on 127.0.0.1:8923 | serves the shell and gives it updates, power and the real browser (`iso/serve.py`) |
 | autologin as `konekt` on tty1 | no Linux login screen — the OS you see is the one you booted |
+| NetworkManager + wpa_supplicant | wired and Wi-Fi, DHCP and DNS (public resolvers seeded so names work from the first second) |
+| BlueZ + PipeWire (`libspa-0.2-bluetooth`) | bluetooth, including audio — pair with `bluetoothctl` on Ctrl+Alt+F2 |
+| firmware: iwlwifi, realtek, atheros, brcm80211, SOF audio, microcode | the drivers real laptops need when booted from USB |
 
 ## Run it in a virtual machine
 
@@ -79,6 +82,18 @@ Built and booted on this machine (VirtualBox 7.1.8, headless, 4 GB RAM):
 
 Re-run that check any time with `.\iso\boot-test.ps1 -PowerOff`; screenshots
 land in `dist\boot-test\`.
+
+## The real browser, and downloads
+
+The BROWSER app inside the shell embeds pages, and some sites refuse to be
+embedded. On the OS the "Открыть в настоящем браузере" button now does what it
+says: the KONEKT service opens a full, windowed Chromium — its own profile,
+tabs, and downloads into `/home/konekt/Downloads`. That is the way to browse
+anything and download anything on the running system.
+
+A note on hardware in VMs: the bluetooth stack and firmware are in the image,
+but VirtualBox does not hand the guest a bluetooth adapter unless you pass one
+through over USB. Boot from a USB stick on a real laptop and it is live.
 
 ## Updating itself
 

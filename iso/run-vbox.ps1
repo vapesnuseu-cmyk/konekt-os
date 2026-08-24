@@ -1,4 +1,4 @@
-<#
+﻿<#
     KONEKT OS — create and start a VirtualBox machine from the live ISO.
 
     Usage (PowerShell, from the repo root):

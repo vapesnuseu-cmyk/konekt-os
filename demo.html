@@ -1517,7 +1517,7 @@ function sysPost(path, body){
 }
 
 const OS_VERSION = '1.7.0';
-const OS_BUILD = 2780;
+const OS_BUILD = 2790;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -2190,6 +2190,14 @@ function kbFrameable(url){
   return /^https:\/\/(konekt-tawny|konekt-os|konekt-browser)[a-z0-9-]*\.vercel\.app(\/|$)/i.test(url);
 }
 function kbHost(url){ try{ return new URL(url).hostname.replace(/^www\./, ''); }catch(e){ return url; } }
+/* "open outside": on the OS this opens a real windowed Chromium (tabs,
+   downloads); in a browser tab it is just a new tab */
+function kbOpenOutside(url){
+  if(SYS && SYS.canOpen){
+    sysPost('/api/open', { url }).then(() => toast('Открыто в настоящем браузере', 2400))
+      .catch(() => open(url, '_blank', 'noopener'));
+  } else open(url, '_blank', 'noopener');
+}
 function launchBrowser(w, arg){
   const st = { tabs: [{ url:'', back:[], fwd:[] }], cur:0 };
   w.body.innerHTML =
@@ -2290,6 +2298,7 @@ function launchBrowser(w, arg){
       f.src = t.url;
       noteL.textContent = kbHost(t.url);
       noteR.innerHTML = '<a href="' + esc(t.url) + '" target="_blank" rel="noopener">открыть снаружи ↗</a>';
+      $('a', noteR).onclick = e => { if(SYS && SYS.canOpen){ e.preventDefault(); kbOpenOutside(t.url); } };
     } else {
       view.appendChild(el('<div class="kb-page">' +
         '<div>' + globe(34, 6) + '</div>' +
@@ -2297,8 +2306,9 @@ function launchBrowser(w, arg){
         '<div class="d">Сайт присылает заголовок, который запрещает открывать его внутри другой страницы. ' +
         'В настоящем KONEKT BROWSER — движок Chromium, и такой страницы нет: она просто открывается. ' +
         'Здесь, внутри демо в браузере, честнее показать это, чем пустое окно.</div>' +
-        '<a class="btn-solid" href="' + esc(t.url) + '" target="_blank" rel="noopener">Открыть в настоящем браузере</a>' +
+        '<button class="btn-solid kb-openreal">Открыть в настоящем браузере</button>' +
         '</div>'));
+      $('.kb-openreal', view).onclick = () => kbOpenOutside(t.url);
       noteL.textContent = 'встраивание запрещено сайтом';
       noteR.innerHTML = '';
     }
@@ -2309,7 +2319,7 @@ function launchBrowser(w, arg){
   $('.rl', w.body).onclick = () => render();
   $('.hm', w.body).onclick = () => go('');
   $('.st', w.body).onclick = () => { noteL.textContent = tab().url ? 'закладка сохранена локально' : 'нечего добавлять в закладки'; };
-  $('.ex', w.body).onclick = () => { if(tab().url) open(tab().url, '_blank', 'noopener'); };
+  $('.ex', w.body).onclick = () => { if(tab().url) kbOpenOutside(tab().url); };
 
   const clock = setInterval(() => {
     const c = $('#kbClock', w.body);
@@ -2330,12 +2340,13 @@ function launchKonekt(w){
     '<div class="kn">' +
       '<div class="kn-ov"><div class="pulse">' + globe(40, 5) + '</div>' +
         '<div class="s">connecting to konekt</div>' +
-        '<a href="' + KONEKT_URL + '" target="_blank" rel="noopener">open in browser instead</a>' +
+        '<a href="' + KONEKT_URL + '" target="_blank" rel="noopener" id="knOutside">open in browser instead</a>' +
       '</div>' +
       '<iframe title="KONEKT" allow="camera; microphone; fullscreen; clipboard-write"></iframe>' +
     '</div>';
   const f = $('iframe', w.body);
   const ov = $('.kn-ov', w.body);
+  $('#knOutside', ov).onclick = e => { if(SYS && SYS.canOpen){ e.preventDefault(); kbOpenOutside(KONEKT_URL); } };
   const t = setTimeout(() => { $('.s', ov).textContent = 'still connecting — or open in browser'; }, 8000);
   f.addEventListener('load', () => { clearTimeout(t); setTimeout(() => ov.classList.add('off'), 350); });
   f.src = KONEKT_URL;

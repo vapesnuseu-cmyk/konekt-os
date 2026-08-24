@@ -143,6 +143,24 @@ def apply_update():
     return {"ok": True, "version": remote.get("version"), "sha256": got}
 
 
+def open_outside(url):
+    """Open a URL in a real, windowed Chromium on the OS.
+
+    A separate profile, so it is a normal browser — tabs, address bar,
+    downloads into ~/Downloads — instead of joining the kiosk process.
+    """
+    if not re.match(r"^https?://", str(url or "")):
+        raise ValueError("only http(s) URLs can be opened")
+    subprocess.Popen([
+        "chromium",
+        "--user-data-dir=" + os.path.expanduser("~/.konekt-web"),
+        "--no-first-run", "--no-default-browser-check",
+        "--password-store=basic",
+        "--new-window", url,
+    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"ok": True, "opened": url}
+
+
 def power(action):
     if action not in ("poweroff", "reboot"):
         raise ValueError("unknown power action")
@@ -188,6 +206,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "origin": update_origin(),
                 "canUpdate": True,
                 "canPower": True,
+                "canOpen": True,
             })
         if path == "/api/update/check":
             return self._guard(check)
@@ -199,6 +218,12 @@ class Handler(SimpleHTTPRequestHandler):
         raw = self.rfile.read(length) if length else b""
         if path == "/api/update/apply":
             return self._guard(apply_update)
+        if path == "/api/open":
+            try:
+                url = (json.loads(raw or b"{}") or {}).get("url", "")
+            except ValueError:
+                url = ""
+            return self._guard(lambda: open_outside(url))
         if path == "/api/power":
             try:
                 action = (json.loads(raw or b"{}") or {}).get("action", "")

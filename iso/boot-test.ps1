@@ -1,4 +1,4 @@
-<#
+﻿<#
     KONEKT OS — boot the ISO in VirtualBox and prove it came up.
 
         .\iso\boot-test.ps1                  # boot, screenshot, leave it running

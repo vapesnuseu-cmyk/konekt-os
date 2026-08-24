@@ -71,7 +71,12 @@ PKGS="linux-image-$ARCH,live-boot,systemd-sysv,init,dbus,udev,libpam-systemd,
 xserver-xorg-core,xserver-xorg-input-libinput,xserver-xorg-video-vmware,
 xserver-xorg-video-fbdev,xserver-xorg-video-vesa,xinit,x11-xserver-utils,
 chromium,python3,fonts-dejavu-core,fontconfig,
-iproute2,iputils-ping,ca-certificates,pciutils,less,nano,psmisc"
+iproute2,iputils-ping,ca-certificates,pciutils,usbutils,less,nano,psmisc,
+network-manager,wpasupplicant,wireless-regdb,
+bluez,rfkill,
+pipewire,pipewire-pulse,pipewire-audio,wireplumber,libspa-0.2-bluetooth,alsa-utils,
+firmware-linux,firmware-iwlwifi,firmware-realtek,firmware-atheros,
+firmware-brcm80211,firmware-sof-signed,intel-microcode,amd64-microcode"
 PKGS="$(echo "$PKGS" | tr -d ' \n')"
 
 mmdebstrap \
@@ -122,7 +127,8 @@ mkdir -p "$ROOTFS/etc/konekt"
 
 # ---------------------------------------------------------------- session user
 say "creating the session"
-chroot "$ROOTFS" useradd -m -s /bin/bash -G audio,video,input konekt
+chroot "$ROOTFS" useradd -m -s /bin/bash -G audio,video,input,netdev,bluetooth konekt
+mkdir -p "$ROOTFS/home/konekt/Downloads"
 chroot "$ROOTFS" passwd -d konekt >/dev/null 2>&1 || true
 
 # autologin on tty1
@@ -182,21 +188,23 @@ needs_root_rights=yes
 EOF
 
 # ---------------------------------------------------------------- network
-say "wiring DHCP"
-mkdir -p "$ROOTFS/etc/systemd/network"
-cat > "$ROOTFS/etc/systemd/network/20-wired.network" <<'EOF'
-[Match]
-Name=en* eth*
-
-[Network]
-DHCP=yes
+say "wiring the network: NetworkManager owns wired, Wi-Fi and DNS"
+chroot "$ROOTFS" systemctl enable NetworkManager >/dev/null 2>&1 || true
+chroot "$ROOTFS" systemctl enable bluetooth >/dev/null 2>&1 || true
+# no dangling resolved symlink: a real file with public resolvers, so names
+# resolve from the first second; NetworkManager rewrites it with the lease DNS
+rm -f "$ROOTFS/etc/resolv.conf"
+cat > "$ROOTFS/etc/resolv.conf" <<'EOF'
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+nameserver 77.88.8.8
 EOF
-chroot "$ROOTFS" systemctl enable systemd-networkd >/dev/null 2>&1 || true
-chroot "$ROOTFS" systemctl enable systemd-resolved >/dev/null 2>&1 || true
-ln -sf /run/systemd/resolve/stub-resolv.conf "$ROOTFS/etc/resolv.conf" 2>/dev/null || true
+# stray networkd config would fight NM for the interface
+rm -f "$ROOTFS/etc/systemd/network/20-wired.network" 2>/dev/null || true
+chroot "$ROOTFS" systemctl disable systemd-networkd >/dev/null 2>&1 || true
 
 # quieter, faster boot: nothing here waits on a network
-chroot "$ROOTFS" systemctl disable systemd-networkd-wait-online >/dev/null 2>&1 || true
+chroot "$ROOTFS" systemctl disable NetworkManager-wait-online >/dev/null 2>&1 || true
 
 # ---------------------------------------------------------------- initramfs
 say "rebuilding the initramfs with live-boot"
