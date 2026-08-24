@@ -1539,8 +1539,8 @@ function sysPost(path, body){
   }).then(r => r.json().then(d => { if(!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }));
 }
 
-const OS_VERSION = '1.7.1';
-const OS_BUILD = 2796;
+const OS_VERSION = '1.7.2';
+const OS_BUILD = 2800;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){

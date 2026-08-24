@@ -73,6 +73,7 @@ xserver-xorg-video-fbdev,xserver-xorg-video-vesa,xinit,x11-xserver-utils,
 chromium,python3,fonts-dejavu-core,fontconfig,
 iproute2,iputils-ping,ca-certificates,pciutils,usbutils,less,nano,psmisc,
 network-manager,wpasupplicant,wireless-regdb,
+nodejs,npm,virtualbox-guest-utils,virtualbox-guest-x11,
 bluez,rfkill,
 pipewire,pipewire-pulse,pipewire-audio,wireplumber,libspa-0.2-bluetooth,alsa-utils,
 firmware-linux,firmware-iwlwifi,firmware-realtek,firmware-atheros,
@@ -118,6 +119,33 @@ say "installing the KONEKT OS shell into /opt/konekt"
 mkdir -p "$ROOTFS/opt/konekt"
 cp "$REPO/demo.html"    "$ROOTFS/opt/konekt/index.html"
 cp "$REPO/version.json" "$ROOTFS/opt/konekt/version.json"
+
+# ---------------------------------------------------------------- KONEKT BROWSER
+# The real one - the Electron app - not a stock Chromium wearing its name.
+say "vendoring KONEKT BROWSER"
+KB_SRC="$REPO/../KONEKT BROWSER"
+mkdir -p "$ROOTFS/opt/konekt-browser"
+for f in main.js browser.html preload.js package.json package-lock.json icon.png icon-192.png; do
+  [ -f "$KB_SRC/$f" ] && cp "$KB_SRC/$f" "$ROOTFS/opt/konekt-browser/$f"
+done
+# first launch should honour a URL argument; later launches use second-instance
+if ! grep -q 'KONEKT OS: honour a URL' "$ROOTFS/opt/konekt-browser/main.js"; then
+  python3 - "$ROOTFS/opt/konekt-browser/main.js" <<'PYEOF2'
+import io, sys
+p = sys.argv[1]
+s = io.open(p, encoding="utf-8").read()
+anchor = "  createWindow();"
+snippet = anchor + """
+  /* KONEKT OS: honour a URL passed on first launch */
+  const kosUrl = process.argv.find(a => /^https?:\/\//i.test(a));
+  if (kosUrl && win) win.webContents.once('did-finish-load', () => win.webContents.send('open-url', kosUrl, false));"""
+assert s.count(anchor) >= 1
+s = s.replace(anchor, snippet, 1)
+io.open(p, "w", encoding="utf-8", newline="\n").write(s)
+print("main.js: first-launch URL snippet added")
+PYEOF2
+fi
+
 # the service that lets the shell update the system and power it off
 cp "$REPO/iso/serve.py" "$ROOTFS/opt/konekt/serve.py"
 chmod +x "$ROOTFS/opt/konekt/serve.py"
@@ -128,6 +156,17 @@ mkdir -p "$ROOTFS/etc/konekt"
 [ -f "$REPO/README.md" ] && cp "$REPO/README.md" "$ROOTFS/opt/konekt/README.md" || true
 
 # ---------------------------------------------------------------- session user
+
+say "installing Electron for KONEKT BROWSER (chroot npm)"
+chroot "$ROOTFS" bash -c "cd /opt/konekt-browser && HOME=/root npm install --no-audit --no-fund" \
+  || echo "WARNING: electron install failed - the OS will fall back to Chromium"
+if [ -f "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" ]; then
+  chown root:root "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox"
+  chmod 4755 "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox"
+fi
+chown -R 1000:1000 "$ROOTFS/opt/konekt-browser" 2>/dev/null || true
+chown root:root "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" 2>/dev/null || true
+
 say "creating the session"
 chroot "$ROOTFS" useradd -m -s /bin/bash -G audio,video,input,netdev,bluetooth konekt
 mkdir -p "$ROOTFS/home/konekt/Downloads"
@@ -155,6 +194,10 @@ cat > "$ROOTFS/home/konekt/.xinitrc" <<'EOF'
 # update check (version.json) works exactly as it does on a real install.
 xset -dpms s off s noblank 2>/dev/null || true
 
+# Guest Additions: the guest follows the VirtualBox window size
+VBoxClient --vmsvga >/dev/null 2>&1 &
+VBoxClient --clipboard >/dev/null 2>&1 &
+
 python3 /opt/konekt/serve.py >/dev/null 2>&1 &
 for _ in $(seq 1 60); do
   if (exec 3<>/dev/tcp/127.0.0.1/8923) 2>/dev/null; then exec 3>&- 3<&-; break; fi
@@ -176,32 +219,6 @@ exec chromium \
 EOF
 chmod +x "$ROOTFS/home/konekt/.xinitrc"
 
-# X must not gamble on the virtual GPU's mood: start at a real resolution.
-# Settings -> Display can move within this framebuffer afterwards.
-mkdir -p "$ROOTFS/etc/X11/xorg.conf.d"
-cat > "$ROOTFS/etc/X11/xorg.conf.d/10-konekt-display.conf" <<'XEOF'
-Section "Monitor"
-    Identifier "Virtual1"
-    Option "PreferredMode" "1920x1080"
-EndSection
-
-Section "Device"
-    Identifier "Card0"
-    Driver "modesetting"
-    Option "Monitor-Virtual-1" "Virtual1"
-    Option "Monitor-Virtual1" "Virtual1"
-EndSection
-
-Section "Screen"
-    Identifier "Screen0"
-    Device "Card0"
-    Monitor "Virtual1"
-    SubSection "Display"
-        Modes "1920x1080"
-        Virtual 1920 1080
-    EndSubSection
-EndSection
-XEOF
 
 # A PC's RTC usually holds local time (VirtualBox presents it that way, and so
 # does any machine that dual-boots Windows). Read it as local so the clock on

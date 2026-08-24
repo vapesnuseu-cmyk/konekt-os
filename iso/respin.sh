@@ -80,6 +80,33 @@ chown -R 1000:1000 "$ROOTFS/opt/konekt"
 # a fleet points itself at its own mirror by writing this file
 mkdir -p "$ROOTFS/etc/konekt"
 
+
+# ---------------------------------------------------------------- KONEKT BROWSER
+# The real one - the Electron app - not a stock Chromium wearing its name.
+say "refreshing KONEKT BROWSER sources"
+KB_SRC="$REPO/../KONEKT BROWSER"
+mkdir -p "$ROOTFS/opt/konekt-browser"
+for f in main.js browser.html preload.js package.json package-lock.json icon.png icon-192.png; do
+  [ -f "$KB_SRC/$f" ] && cp "$KB_SRC/$f" "$ROOTFS/opt/konekt-browser/$f"
+done
+# first launch should honour a URL argument; later launches use second-instance
+if ! grep -q 'KONEKT OS: honour a URL' "$ROOTFS/opt/konekt-browser/main.js"; then
+  python3 - "$ROOTFS/opt/konekt-browser/main.js" <<'PYEOF2'
+import io, sys
+p = sys.argv[1]
+s = io.open(p, encoding="utf-8").read()
+anchor = "  createWindow();"
+snippet = anchor + """
+  /* KONEKT OS: honour a URL passed on first launch */
+  const kosUrl = process.argv.find(a => /^https?:\/\//i.test(a));
+  if (kosUrl && win) win.webContents.once('did-finish-load', () => win.webContents.send('open-url', kosUrl, false));"""
+assert s.count(anchor) >= 1
+s = s.replace(anchor, snippet, 1)
+io.open(p, "w", encoding="utf-8", newline="\n").write(s)
+print("main.js: first-launch URL snippet added")
+PYEOF2
+fi
+
 say "rewriting the session"
 cat > "$ROOTFS/home/konekt/.bash_profile" <<'EOF'
 if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
@@ -93,6 +120,10 @@ cat > "$ROOTFS/home/konekt/.xinitrc" <<'EOF'
 # gives it the things a page cannot do for itself: fetch a new build from the
 # update origin, verify it, install it, and power the machine off.
 xset -dpms s off s noblank 2>/dev/null || true
+
+# Guest Additions: the guest follows the VirtualBox window size
+VBoxClient --vmsvga >/dev/null 2>&1 &
+VBoxClient --clipboard >/dev/null 2>&1 &
 
 python3 /opt/konekt/serve.py >/dev/null 2>&1 &
 
@@ -115,32 +146,6 @@ exec chromium \
 EOF
 chmod +x "$ROOTFS/home/konekt/.xinitrc"
 
-# X must not gamble on the virtual GPU's mood: start at a real resolution.
-# Settings -> Display can move within this framebuffer afterwards.
-mkdir -p "$ROOTFS/etc/X11/xorg.conf.d"
-cat > "$ROOTFS/etc/X11/xorg.conf.d/10-konekt-display.conf" <<'XEOF'
-Section "Monitor"
-    Identifier "Virtual1"
-    Option "PreferredMode" "1920x1080"
-EndSection
-
-Section "Device"
-    Identifier "Card0"
-    Driver "modesetting"
-    Option "Monitor-Virtual-1" "Virtual1"
-    Option "Monitor-Virtual1" "Virtual1"
-EndSection
-
-Section "Screen"
-    Identifier "Screen0"
-    Device "Card0"
-    Monitor "Virtual1"
-    SubSection "Display"
-        Modes "1920x1080"
-        Virtual 1920 1080
-    EndSubSection
-EndSection
-XEOF
 
 # A PC's RTC usually holds local time (VirtualBox presents it that way, and so
 # does any machine that dual-boots Windows). Read it as local so the clock on

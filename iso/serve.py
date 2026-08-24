@@ -337,6 +337,14 @@ def open_outside(url):
     """
     if not re.match(r"^https?://", str(url or "")):
         raise ValueError("only http(s) URLs can be opened")
+    kb = "/opt/konekt-browser"
+    electron = os.path.join(kb, "node_modules", "electron", "dist", "electron")
+    if os.path.exists(electron):
+        # the real KONEKT BROWSER; its single-instance lock turns every later
+        # call into an open-in-new-tab of the running app
+        subprocess.Popen([electron, kb, url], cwd=kb,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"ok": True, "opened": url, "browser": "konekt"}
     subprocess.Popen([
         "chromium",
         "--user-data-dir=" + os.path.expanduser("~/.konekt-web"),
@@ -344,7 +352,7 @@ def open_outside(url):
         "--password-store=basic",
         "--new-window", url,
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return {"ok": True, "opened": url}
+    return {"ok": True, "opened": url, "browser": "chromium"}
 
 
 def power(action):
