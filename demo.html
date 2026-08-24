@@ -1539,8 +1539,8 @@ function sysPost(path, body){
   }).then(r => r.json().then(d => { if(!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }));
 }
 
-const OS_VERSION = '1.7.0';
-const OS_BUILD = 2795;
+const OS_VERSION = '1.7.1';
+const OS_BUILD = 2796;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -1579,11 +1579,12 @@ function checkUpdate(opts){
   return ask
     .then(info => {
       if(!info || !info.version) throw new Error('bad manifest');
-      const newer = cmpVer(info.version, OS_VERSION) > 0;
+      const vc = cmpVer(info.version, OS_VERSION);
+      const newer = vc > 0 || (vc === 0 && +(info.build || 0) > OS_BUILD);
       if(newer){
         /* if we already tried this exact version and came back on the old one,
            say so instead of asking again forever */
-        if(store.get('kos.updateTried', null) === info.version){
+        if(store.get('kos.updateTried', null) === info.version + '+' + (info.build || 0)){
           toast('Обновление ' + info.version + ' не применилось');
           return { info, newer, stuck:true };
         }
@@ -1641,7 +1642,7 @@ function applyUpdate(info){
   if(foot) foot.remove();
   m.onclick = null;
   prog.classList.add('on');
-  store.set('kos.updateTried', info.version);
+  store.set('kos.updateTried', info.version + '+' + (info.build || 0));
 
   const show = (label, pct) => { step.textContent = label; bar.style.width = pct + '%'; };
   const finish = () => {

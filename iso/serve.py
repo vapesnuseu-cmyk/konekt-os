@@ -97,7 +97,8 @@ def check():
     origin = update_origin()
     local = local_manifest()
     remote = json.loads(fetch(origin + "/version.json?t=" + str(os.getpid())))
-    newer = cmp_version(remote.get("version"), local.get("version")) > 0
+    vc = cmp_version(remote.get("version"), local.get("version"))
+    newer = vc > 0 or (vc == 0 and int(remote.get("build") or 0) > int(local.get("build") or 0))
     return {
         "ok": True,
         "origin": origin,
