@@ -121,6 +121,8 @@ cp "$REPO/version.json" "$ROOTFS/opt/konekt/version.json"
 # the service that lets the shell update the system and power it off
 cp "$REPO/iso/serve.py" "$ROOTFS/opt/konekt/serve.py"
 chmod +x "$ROOTFS/opt/konekt/serve.py"
+# the updater runs as the session user and must replace these files
+chown -R 1000:1000 "$ROOTFS/opt/konekt"
 # a fleet points itself at its own mirror by writing this file
 mkdir -p "$ROOTFS/etc/konekt"
 [ -f "$REPO/README.md" ] && cp "$REPO/README.md" "$ROOTFS/opt/konekt/README.md" || true
