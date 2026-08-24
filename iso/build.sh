@@ -223,6 +223,9 @@ fi
 # ---------------------------------------------------------------- real applications
 say "installing the KONEKT products as real applications"
 mkdir -p "$ROOTFS/opt/konekt-apps/src"
+# Replace it, do not copy into it: cp -r onto an existing directory nests the
+# new copy inside the old one, and the stale main.js is the one that runs.
+rm -rf "$ROOTFS/opt/konekt-apps/shell"
 cp -r "$REPO/iso/appshell" "$ROOTFS/opt/konekt-apps/shell"
 
 # The products themselves, downloaded into the image. Each is a self-contained
