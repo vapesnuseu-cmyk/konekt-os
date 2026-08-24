@@ -65,7 +65,10 @@ if (& $VBoxManage list vms | Select-String -SimpleMatch "`"$Name`"") {
 & $VBoxManage storageattach $Name --storagectl 'SATA' --port 0 --device 0 --type dvddrive --medium $Iso | Out-Null
 
 Write-Host 'Starting headless...'
+& $VBoxManage setextradata $Name 'CustomVideoMode1' '1920x1080x32' 2>$null | Out-Null
 & $VBoxManage startvm $Name --type headless | Out-Null
+Start-Sleep -Seconds 4
+Invoke-VBoxQuiet controlvm $Name setvideomodehint 1920 1080 32
 
 $taken = @()
 $shotTimes = @($ShotAt -split ',' | ForEach-Object { [int]$_.Trim() })

@@ -259,6 +259,22 @@ def display_set(w, h):
     return {"ok": True, "width": w, "height": h}
 
 
+KB_ORIGIN = "https://konekt-browser.vercel.app"
+
+
+def kb_freshness():
+    """Which deployment of KONEKT BROWSER is live right now.
+
+    The site ships no version manifest, but every Vercel deployment answers
+    with a fresh ETag — so a changed tag IS a new release of the browser.
+    """
+    req = urllib.request.Request(KB_ORIGIN + "/", method="HEAD",
+                                 headers={"User-Agent": "KONEKT-OS"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        et = resp.headers.get("etag") or resp.headers.get("last-modified") or ""
+    return {"ok": True, "origin": KB_ORIGIN, "etag": et.strip('"W/ ')}
+
+
 def open_outside(url):
     """Open a URL in a real, windowed Chromium on the OS.
 
@@ -326,6 +342,8 @@ class Handler(SimpleHTTPRequestHandler):
             })
         if path == "/api/update/check":
             return self._guard(check)
+        if path == "/api/kb/fresh":
+            return self._guard(kb_freshness)
         if path == "/api/display":
             return self._guard(display_modes)
         if path == "/api/net/status":

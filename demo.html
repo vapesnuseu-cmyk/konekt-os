@@ -1535,7 +1535,7 @@ function sysPost(path, body){
 }
 
 const OS_VERSION = '1.7.0';
-const OS_BUILD = 2792;
+const OS_BUILD = 2793;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -2343,6 +2343,18 @@ function launchBrowser(w, arg){
     const c = $('#kbClock', w.body);
     if(c){ const n = new Date(); c.textContent = two(n.getHours()) + ':' + two(n.getMinutes()); }
   }, 1000);
+  /* the browser is a living product: notice when a new build of
+     konekt-browser.vercel.app shipped since it was last opened here */
+  if(SYS){
+    fetch('/api/kb/fresh', { cache:'no-store' }).then(r => r.json()).then(d => {
+      if(!d.ok || !d.etag) return;
+      const seen = store.get('kos.kbEtag', null);
+      store.set('kos.kbEtag', d.etag);
+      if(seen && seen !== d.etag)
+        notify({ title:'KONEKT BROWSER обновился', body:'Открывается самая свежая сборка.', icon: IC.browser });
+      noteL.textContent = 'KONEKT BROWSER · предустановлен · самая свежая сборка';
+    }).catch(() => {});
+  }
   w.onClose = () => clearInterval(clock);
   w.onArg = a => { if(a && a.url) go(a.url); };
   render();
