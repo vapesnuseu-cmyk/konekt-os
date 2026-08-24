@@ -59,6 +59,19 @@ if [ ! -d "$ROOTFS" ]; then
   rmdir "$MNT" 2>/dev/null || true
 fi
 
+# the kernel may be missing even when the rootfs survived - WSL clears /tmp in
+# pieces - so fetch it from the newest ISO whenever it is not already staged
+if [ ! -f "$ISODIR/live/vmlinuz" ] && ! ls "$ROOTFS"/boot/vmlinuz-* >/dev/null 2>&1; then
+  K_ISO="$(ls -1t "$OUT"/konekt-os-*.iso 2>/dev/null | head -1)"
+  if [ -n "$K_ISO" ]; then
+    say "kernel not staged; taking it from $(basename "$K_ISO")"
+    KX="$(mktemp -d)"
+    bsdtar -xf "$K_ISO" -C "$KX" live/vmlinuz live/initrd 2>/dev/null || true
+    [ -f "$KX/live/vmlinuz" ] && cp "$KX/live/vmlinuz" "$ISODIR/live/vmlinuz"
+    [ -f "$KX/live/initrd" ] && cp "$KX/live/initrd" "$ISODIR/live/initrd"
+    rm -rf "$KX"
+  fi
+fi
 # the squashfs excludes /boot, so take the kernel from the tree only when it has one
 if ls "$ROOTFS"/boot/vmlinuz-* >/dev/null 2>&1; then
   KVER="$(basename "$(ls -1 "$ROOTFS"/boot/vmlinuz-* | sort | tail -1)" | sed 's/vmlinuz-//')"
