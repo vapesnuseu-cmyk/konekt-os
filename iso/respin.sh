@@ -148,6 +148,28 @@ if [ -f "$GA_ISO" ] && [ ! -x "$ROOTFS/usr/bin/VBoxClient" ]; then
   rm -rf "$GA_TMP"
 fi
 
+# electron's binary arrives via a postinstall download that can fail quietly;
+# verify it and say so, loudly, because a silent miss cost us a build already
+ensure_electron() {
+  chroot "$ROOTFS" bash -c "cd /opt/konekt-browser && HOME=/root npm install --no-audit --no-fund" || true
+  if [ ! -x "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/electron" ]; then
+    say "electron binary missing - running its installer directly"
+    chroot "$ROOTFS" bash -c "cd /opt/konekt-browser/node_modules/electron && HOME=/root node install.js" || true
+  fi
+  if [ -x "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/electron" ]; then
+    say "KONEKT BROWSER runtime present"
+    chown root:root "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" 2>/dev/null || true
+    chmod 4755 "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" 2>/dev/null || true
+  else
+    echo "ERROR: electron runtime still missing - the OS will fall back to Chromium" >&2
+  fi
+}
+
+if [ ! -x "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/electron" ]; then
+  say "electron runtime absent in this tree - installing"
+  ensure_electron
+fi
+
 say "rewriting the session"
 cat > "$ROOTFS/home/konekt/.bash_profile" <<'EOF'
 if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then

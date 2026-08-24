@@ -157,13 +157,25 @@ mkdir -p "$ROOTFS/etc/konekt"
 
 # ---------------------------------------------------------------- session user
 
+# electron's binary arrives via a postinstall download that can fail quietly;
+# verify it and say so, loudly, because a silent miss cost us a build already
+ensure_electron() {
+  chroot "$ROOTFS" bash -c "cd /opt/konekt-browser && HOME=/root npm install --no-audit --no-fund" || true
+  if [ ! -x "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/electron" ]; then
+    say "electron binary missing - running its installer directly"
+    chroot "$ROOTFS" bash -c "cd /opt/konekt-browser/node_modules/electron && HOME=/root node install.js" || true
+  fi
+  if [ -x "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/electron" ]; then
+    say "KONEKT BROWSER runtime present"
+    chown root:root "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" 2>/dev/null || true
+    chmod 4755 "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" 2>/dev/null || true
+  else
+    echo "ERROR: electron runtime still missing - the OS will fall back to Chromium" >&2
+  fi
+}
+
 say "installing Electron for KONEKT BROWSER (chroot npm)"
-chroot "$ROOTFS" bash -c "cd /opt/konekt-browser && HOME=/root npm install --no-audit --no-fund" \
-  || echo "WARNING: electron install failed - the OS will fall back to Chromium"
-if [ -f "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" ]; then
-  chown root:root "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox"
-  chmod 4755 "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox"
-fi
+ensure_electron
 chown -R 1000:1000 "$ROOTFS/opt/konekt-browser" 2>/dev/null || true
 chown root:root "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/chrome-sandbox" 2>/dev/null || true
 
