@@ -377,6 +377,51 @@ def media_open(kind, rel):
     return full
 
 
+APP_CATALOGUE = [
+    {"id": "konekt",   "name": "KONEKT",           "url": "https://konekt-tawny.vercel.app/",
+     "repo": "https://github.com/vapesnuseu-cmyk/konekt.git"},
+    {"id": "koach",    "name": "KONEKT KOACH",     "url": "https://konekt-kouch.vercel.app/",
+     "repo": "https://github.com/vapesnuseu-cmyk/konekt-kouch.git"},
+    {"id": "studio",   "name": "LASTOCHKA STUDIO", "url": "https://lastochka-studio.vercel.app/",
+     "repo": "https://github.com/vapesnuseu-cmyk/lastochka-studio.git"},
+    {"id": "repo",     "name": "KONEKT REPO",      "url": "https://konekt-repo.vercel.app/",
+     "repo": "https://github.com/vapesnuseu-cmyk/konekt-repo.git"},
+]
+APP_SHELL = "/opt/konekt-apps/shell"
+ELECTRON = "/opt/konekt-browser/node_modules/electron/dist/electron"
+
+
+def apps_list():
+    """What is installed, and whether it can actually be launched."""
+    have_runtime = os.path.isfile(ELECTRON) and os.path.isdir(APP_SHELL)
+    out = []
+    for a in APP_CATALOGUE:
+        src = "/opt/konekt-apps/src/" + a["id"]
+        out.append({"id": a["id"], "name": a["name"], "url": a["url"],
+                    "installed": have_runtime,
+                    "source": os.path.isdir(src)})
+    return {"ok": True, "runtime": have_runtime, "apps": out}
+
+
+def app_launch(app_id):
+    """Start a product as a real application window."""
+    entry = next((a for a in APP_CATALOGUE if a["id"] == app_id), None)
+    if not entry:
+        raise ValueError("no such application")
+    if not os.path.isfile(ELECTRON):
+        raise ValueError("the application runtime is not installed")
+    env = dict(os.environ)
+    env.setdefault("DISPLAY", ":0")
+    env.setdefault("XAUTHORITY", os.path.expanduser("~/.Xauthority"))
+    subprocess.Popen(
+        [ELECTRON, APP_SHELL,
+         "--id=" + entry["id"], "--url=" + entry["url"], "--title=" + entry["name"],
+         "--no-sandbox"],
+        env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True)
+    return {"ok": True, "launched": entry["id"], "name": entry["name"]}
+
+
 def open_outside(url):
     """Open a URL in a real, windowed Chromium on the OS.
 
@@ -452,6 +497,8 @@ class Handler(SimpleHTTPRequestHandler):
             })
         if path == "/api/update/check":
             return self._guard(check)
+        if path == "/api/apps":
+            return self._guard(apps_list)
         if path == "/api/media":
             return self._guard(media_list)
         if path == "/api/media/file":
@@ -536,6 +583,12 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 body = {}
             return self._guard(lambda: display_set(body.get("width", 0), body.get("height", 0)))
+        if path == "/api/app/launch":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: app_launch(body.get("id", "")))
         if path == "/api/open":
             try:
                 url = (json.loads(raw or b"{}") or {}).get("url", "")

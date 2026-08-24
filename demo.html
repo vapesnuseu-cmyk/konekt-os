@@ -1703,8 +1703,8 @@ function sysPost(path, body){
   }).then(r => r.json().then(d => { if(!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }));
 }
 
-const OS_VERSION = '1.8.0';
-const OS_BUILD = 2811;
+const OS_VERSION = '1.9.0';
+const OS_BUILD = 2900;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -2372,9 +2372,10 @@ function renderIcons(){
 /* ---------------------------- apps ---------------------------- */
 const APPS = {
   web:    { name:'BROWSER',  icon: IC.browser, w:980, h:660, launch: launchBrowser },
-  konekt: { name:'KONEKT',   icon: IC.globe, w:1080, h:700, launch: launchKonekt },
-  studio: { name:'LASTOCHKA', icon: IC.studio, w:1180, h:760, launch: w => launchSite(w, 'https://lastochka-studio.vercel.app/', 'LASTOCHKA STUDIO') },
-  kouch:  { name:'KOUCH',    icon: IC.kouch, w:1120, h:720, launch: w => launchSite(w, 'https://konekt-kouch.vercel.app/', 'KONEKT KOUCH') },
+  konekt: { name:'KONEKT',   icon: IC.globe, w:1080, h:700, launch: w => launchProduct(w, 'konekt', KONEKT_URL, 'KONEKT') },
+  studio: { name:'LASTOCHKA', icon: IC.studio, w:1180, h:760, launch: w => launchProduct(w, 'studio', 'https://lastochka-studio.vercel.app/', 'LASTOCHKA STUDIO') },
+  koach:  { name:'KOACH',    icon: IC.kouch, w:1120, h:720, launch: w => launchProduct(w, 'koach', 'https://konekt-kouch.vercel.app/', 'KONEKT KOACH') },
+  repo:   { name:'REPO',     icon: IC.files, w:1100, h:720, launch: w => launchProduct(w, 'repo', 'https://konekt-repo.vercel.app/', 'KONEKT REPO') },
   media:  { name:'MEDIA',    icon: IC.media, w:900,  h:600, launch: launchMedia },
   files:  { name:'FILES',    icon: IC.files, w:700,  h:480, launch: launchFiles },
   term:   { name:'TERMINAL', icon: IC.term,  w:640,  h:420, launch: launchTerm },
@@ -2568,7 +2569,36 @@ function launchBrowser(w, arg){
   if(arg && arg.url) go(arg.url);
 }
 
-/* ---------- a sibling product, embedded ---------- */
+/* ---------- the KONEKT products, as real applications ----------
+   On the OS these are applications: their own window, their own session,
+   their own place in the window list. In a browser tab there is no system to
+   start them, so the page falls back to embedding and says which it is. */
+function launchProduct(w, id, url, title){
+  if(SYS){
+    /* a real application - the window belongs to the system, not to this page */
+    w.body.innerHTML =
+      '<div class="kn-ov" style="position:static;flex:1">' +
+        '<div class="pulse">' + globe(40, 5) + '</div>' +
+        '<div class="s">' + esc(title) + ' — ' + TT('starting') + '</div>' +
+      '</div>';
+    sysPost('/api/app/launch', { id })
+      .then(() => {
+        setTimeout(() => { const win = winFor(id); if(win) closeWin(win); }, 900);
+        notify({ title: title, body: TT('appStarted'), icon: IC.grid4 });
+      })
+      .catch(err => {
+        w.body.innerHTML =
+          '<div class="kb-page"><div>' + globe(34, 6) + '</div>' +
+          '<div class="t">' + esc(title) + '</div>' +
+          '<div class="d">' + esc(String(err.message || err)) + '</div>' +
+          '<a class="btn-solid" href="' + esc(url) + '" target="_blank" rel="noopener">' + TT('openInBrowser') + '</a></div>';
+      });
+    return;
+  }
+  launchSite(w, url, title);
+}
+
+/* ---------- a sibling product, embedded (browser tab only) ---------- */
 function launchSite(w, url, title){
   w.body.innerHTML =
     '<div class="kn">' +
@@ -3331,6 +3361,18 @@ function launchSettings(w, arg){
         paintDisp();
       }
 
+      if(SYS){
+        const appsSec = sec(TT('installedApps'));
+        fetch('/api/apps', { cache:'no-store' }).then(r => r.json()).then(d => {
+          if(!d.ok) throw 0;
+          appsSec.innerHTML = '<h3 class="st-t">' + TT('installedApps') + '</h3>' +
+            d.apps.map(a =>
+              '<div class="about-row"><span class="k">' + esc(a.name) + '</span><span class="v">' +
+              (a.installed ? 'application' : 'web') + (a.source ? ' · source' : '') + '</span></div>').join('') +
+            '<div class="st-note">' + TT('appsNote') + '</div>';
+        }).catch(() => { appsSec.innerHTML = ''; });
+      }
+
       const sw2 = sec('Software update');
       const upRow = el('<div class="st-field"></div>');
       const upBtn = el('<button class="btn-line">Check for updates</button>');
@@ -3457,6 +3499,13 @@ const TT_D = {
   ssoOnlyOnOS: { ru:'Вход работает в самой системе (localhost:8923) — здесь адрес не тот, что зарегистрирован в SSO.',
                  en:'Sign-in works on the OS itself (localhost:8923) — this address is not the one registered with SSO.' },
   library:     { ru:'Медиатека',              en:'Library' },
+  starting:    { ru:'запускается…',           en:'starting…' },
+  appStarted:  { ru:'Приложение запущено в своём окне.',
+                 en:'Started as its own application window.' },
+  openInBrowser:{ ru:'Открыть в браузере',    en:'Open in the browser' },
+  installedApps:{ ru:'Приложения',            en:'Applications' },
+  appsNote:    { ru:'Продукты KONEKT установлены как настоящие приложения: своё окно, своя сессия. Исходники — в /opt/konekt-apps/src.',
+                 en:'The KONEKT products are installed as real applications: own window, own session. Their sources live in /opt/konekt-apps/src.' },
   noMedia:     { ru:'Здесь пока пусто. Положите файлы в ~/Music, ~/Videos или ~/Pictures.',
                  en:'Nothing here yet. Put files in ~/Music, ~/Videos or ~/Pictures.' },
   mediaWeb:    { ru:'В браузере медиатеки нет — она читает настоящие папки системы.',

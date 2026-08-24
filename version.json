@@ -1,6 +1,6 @@
 {
-  "version": "1.8.0",
-  "build": 2811,
+  "version": "1.9.0",
+  "build": 2900,
   "channel": "stable",
   "date": "2026-08-24",
   "summary": "Семья приехала: LASTOCHKA STUDIO, KONEKT KOUCH и KONEKT MEDIA — и вход через KONEKT, который не обязателен.",
@@ -14,7 +14,7 @@
   ],
   "payload": {
     "file": "demo.html",
-    "sha256": "99a84cff95fb9a76b72024c1c909a5fe10e02f3bee1bb05865a281792019b2fc",
-    "bytes": 213736
+    "sha256": "a11f4ef2a995e1200cf2ef7dc68401bf7c5f9c6c6afdfab94d3a2dbc0d3cc960",
+    "bytes": 216677
   }
 }

@@ -183,6 +183,42 @@ if [ ! -x "$ROOTFS/opt/konekt-browser/node_modules/electron/dist/electron" ]; th
   ensure_electron
 fi
 
+# ---------------------------------------------------------------- real applications
+# a respin works from an existing filesystem, so the window manager has to be
+# fetched here rather than assumed from the package list
+if [ ! -x "$ROOTFS/usr/bin/openbox" ] || [ ! -x "$ROOTFS/usr/bin/git" ]; then
+  say "installing openbox and git into the tree"
+  mount --bind /proc "$ROOTFS/proc" 2>/dev/null || true
+  mount --bind /dev  "$ROOTFS/dev"  2>/dev/null || true
+  cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf.respin" 2>/dev/null || true
+  chroot "$ROOTFS" bash -c "apt-get update -qq && apt-get install -y -qq --no-install-recommends openbox git"     || echo "WARNING: openbox/git not installed - real app windows will be unmanaged"
+  umount -l "$ROOTFS/proc" 2>/dev/null || true
+  umount -l "$ROOTFS/dev"  2>/dev/null || true
+fi
+
+say "installing the KONEKT products as real applications"
+mkdir -p "$ROOTFS/opt/konekt-apps/src"
+cp -r "$REPO/iso/appshell" "$ROOTFS/opt/konekt-apps/shell"
+
+# the products' own sources, from their repositories
+for spec in \
+  "konekt|https://github.com/vapesnuseu-cmyk/konekt.git" \
+  "koach|https://github.com/vapesnuseu-cmyk/konekt-kouch.git" \
+  "studio|https://github.com/vapesnuseu-cmyk/lastochka-studio.git" \
+  "repo|https://github.com/vapesnuseu-cmyk/konekt-repo.git" ; do
+  id="${spec%%|*}"; url="${spec##*|}"
+  dest="$ROOTFS/opt/konekt-apps/src/$id"
+  if [ ! -d "$dest" ]; then
+    if git clone --depth 1 --quiet "$url" "$dest" 2>/dev/null; then
+      rm -rf "$dest/.git"
+      say "  $id — source installed"
+    else
+      echo "  WARNING: could not clone $url (private or offline); $id still runs from its deployment"
+    fi
+  fi
+done
+chown -R 1000:1000 "$ROOTFS/opt/konekt-apps"
+
 say "rewriting the session"
 cat > "$ROOTFS/home/konekt/.bash_profile" <<'EOF'
 if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
@@ -196,6 +232,10 @@ cat > "$ROOTFS/home/konekt/.xinitrc" <<'EOF'
 # gives it the things a page cannot do for itself: fetch a new build from the
 # update origin, verify it, install it, and power the machine off.
 xset -dpms s off s noblank 2>/dev/null || true
+
+# a window manager, so real applications have windows you can move and stack.
+# The shell stays fullscreen underneath: it is the desktop.
+openbox --config-file /etc/xdg/openbox/konekt-rc.xml >/dev/null 2>&1 &
 
 # Guest Additions: the guest follows the VirtualBox window size
 VBoxClient --vmsvga >/dev/null 2>&1 &
@@ -221,6 +261,27 @@ exec chromium \
   --window-position=0,0
 EOF
 chmod +x "$ROOTFS/home/konekt/.xinitrc"
+
+# openbox with no decorations: KONEKT applications draw their own chrome
+mkdir -p "$ROOTFS/etc/xdg/openbox"
+cat > "$ROOTFS/etc/xdg/openbox/konekt-rc.xml" <<'OBEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <theme><titleLayout></titleLayout><keepBorder>no</keepBorder></theme>
+  <applications>
+    <application class="*">
+      <decor>no</decor>
+    </application>
+    <application name="chromium" class="Chromium">
+      <layer>below</layer>
+      <maximized>yes</maximized>
+    </application>
+  </applications>
+  <keyboard>
+    <keybind key="A-F4"><action name="Close"/></keybind>
+  </keyboard>
+</openbox_config>
+OBEOF
 
 # the mainline vboxguest module creates /dev/vboxguest root-only; the udev rule
 # that opens it ships in a Debian package trixie does not have - so we are it

@@ -73,7 +73,7 @@ xserver-xorg-video-fbdev,xserver-xorg-video-vesa,xinit,x11-xserver-utils,
 chromium,python3,fonts-dejavu-core,fontconfig,
 iproute2,iputils-ping,ca-certificates,pciutils,usbutils,less,nano,psmisc,
 network-manager,wpasupplicant,wireless-regdb,
-nodejs,npm,libxmu6,libxt6,
+nodejs,npm,libxmu6,libxt6,openbox,git,
 bluez,rfkill,
 pipewire,pipewire-pulse,pipewire-audio,wireplumber,libspa-0.2-bluetooth,alsa-utils,
 firmware-linux,firmware-iwlwifi,firmware-realtek,firmware-atheros,
@@ -220,6 +220,30 @@ if [ -f "$GA_ISO" ] && [ ! -x "$ROOTFS/usr/bin/VBoxClient" ]; then
   rm -rf "$GA_TMP"
 fi
 
+# ---------------------------------------------------------------- real applications
+say "installing the KONEKT products as real applications"
+mkdir -p "$ROOTFS/opt/konekt-apps/src"
+cp -r "$REPO/iso/appshell" "$ROOTFS/opt/konekt-apps/shell"
+
+# the products' own sources, from their repositories
+for spec in \
+  "konekt|https://github.com/vapesnuseu-cmyk/konekt.git" \
+  "koach|https://github.com/vapesnuseu-cmyk/konekt-kouch.git" \
+  "studio|https://github.com/vapesnuseu-cmyk/lastochka-studio.git" \
+  "repo|https://github.com/vapesnuseu-cmyk/konekt-repo.git" ; do
+  id="${spec%%|*}"; url="${spec##*|}"
+  dest="$ROOTFS/opt/konekt-apps/src/$id"
+  if [ ! -d "$dest" ]; then
+    if git clone --depth 1 --quiet "$url" "$dest" 2>/dev/null; then
+      rm -rf "$dest/.git"
+      say "  $id — source installed"
+    else
+      echo "  WARNING: could not clone $url (private or offline); $id still runs from its deployment"
+    fi
+  fi
+done
+chown -R 1000:1000 "$ROOTFS/opt/konekt-apps"
+
 say "creating the session"
 chroot "$ROOTFS" useradd -m -s /bin/bash -G audio,video,input,netdev,bluetooth konekt
 mkdir -p "$ROOTFS/home/konekt/Downloads"
@@ -247,6 +271,10 @@ cat > "$ROOTFS/home/konekt/.xinitrc" <<'EOF'
 # update check (version.json) works exactly as it does on a real install.
 xset -dpms s off s noblank 2>/dev/null || true
 
+# a window manager, so real applications have windows you can move and stack.
+# The shell stays fullscreen underneath: it is the desktop.
+openbox --config-file /etc/xdg/openbox/konekt-rc.xml >/dev/null 2>&1 &
+
 # Guest Additions: the guest follows the VirtualBox window size
 VBoxClient --vmsvga >/dev/null 2>&1 &
 VBoxClient --clipboard >/dev/null 2>&1 &
@@ -271,6 +299,27 @@ exec chromium \
   --window-position=0,0
 EOF
 chmod +x "$ROOTFS/home/konekt/.xinitrc"
+
+# openbox with no decorations: KONEKT applications draw their own chrome
+mkdir -p "$ROOTFS/etc/xdg/openbox"
+cat > "$ROOTFS/etc/xdg/openbox/konekt-rc.xml" <<'OBEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <theme><titleLayout></titleLayout><keepBorder>no</keepBorder></theme>
+  <applications>
+    <application class="*">
+      <decor>no</decor>
+    </application>
+    <application name="chromium" class="Chromium">
+      <layer>below</layer>
+      <maximized>yes</maximized>
+    </application>
+  </applications>
+  <keyboard>
+    <keybind key="A-F4"><action name="Close"/></keybind>
+  </keyboard>
+</openbox_config>
+OBEOF
 
 # the mainline vboxguest module creates /dev/vboxguest root-only; the udev rule
 # that opens it ships in a Debian package trixie does not have - so we are it

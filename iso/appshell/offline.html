@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>KONEKT</title>
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;background:#000;color:#fff;font-family:'Montserrat','Segoe UI',Arial,sans-serif;text-align:center;padding:30px}
+  .t{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+  .d{font-size:13px;color:#999;line-height:1.7;max-width:440px}
+  .u{font-family:'Cascadia Mono',Consolas,monospace;font-size:11px;color:#6f6f6f;overflow-wrap:anywhere}
+  button{margin-top:6px;background:#fff;color:#000;border:0;padding:11px 22px;font:inherit;font-size:10.5px;
+    font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+</style>
+<svg width="46" height="46" viewBox="-56 -56 112 112" fill="none" stroke="#434343" stroke-width="7.4">
+  <circle r="50"/><ellipse rx="18" ry="50"/><ellipse rx="36.5" ry="50"/>
+  <line y1="-50" y2="50"/><line x1="-48.7" x2="48.7"/>
+  <line x1="-43.8" y1="21.5" x2="43.8" y2="21.5"/><line x1="-43.8" y1="-21.5" x2="43.8" y2="-21.5"/>
+</svg>
+<div class="t" id="t">KONEKT</div>
+<div class="d">Нет связи с сервером приложения. Система работает — не хватает только сети.</div>
+<div class="u" id="u"></div>
+<button onclick="location.reload()">Попробовать снова</button>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('title')) document.getElementById('t').textContent = q.get('title');
+  document.getElementById('u').textContent = (q.get('url') || '') + (q.get('desc') ? ' — ' + q.get('desc') : '');
+</script>

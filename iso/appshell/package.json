@@ -1,0 +1,7 @@
+{
+  "name": "konekt-app-shell",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runs a KONEKT product as a real application on KONEKT OS",
+  "main": "main.js"
+}
