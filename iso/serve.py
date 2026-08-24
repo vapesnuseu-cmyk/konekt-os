@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import urllib.parse
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -329,6 +330,53 @@ def audio_set(volume, muted):
     return audio_status()
 
 
+MEDIA_DIRS = {
+    "music": os.path.expanduser("~/Music"),
+    "videos": os.path.expanduser("~/Videos"),
+    "pictures": os.path.expanduser("~/Pictures"),
+}
+MEDIA_EXT = {
+    "music": (".mp3", ".ogg", ".oga", ".flac", ".wav", ".m4a", ".opus"),
+    "videos": (".mp4", ".webm", ".mkv", ".ogv", ".m4v"),
+    "pictures": (".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".avif"),
+}
+
+
+def media_list():
+    """What KONEKT MEDIA can play: real files in the real home directory."""
+    out = {}
+    for kind, root in MEDIA_DIRS.items():
+        items = []
+        for base, _dirs, files in os.walk(root):
+            for f in sorted(files):
+                if f.lower().endswith(MEDIA_EXT[kind]):
+                    full = os.path.join(base, f)
+                    rel = os.path.relpath(full, root).replace(os.sep, "/")
+                    try:
+                        size = os.path.getsize(full)
+                    except OSError:
+                        continue
+                    items.append({"name": f, "path": rel, "bytes": size,
+                                  "url": "/api/media/file?kind=%s&path=%s" % (kind, urllib.parse.quote(rel))})
+            if len(items) > 200:
+                break
+        out[kind] = items[:200]
+    return {"ok": True, "library": out, "dirs": MEDIA_DIRS}
+
+
+def media_open(kind, rel):
+    """Resolve a library path safely - nothing outside the three folders."""
+    root = MEDIA_DIRS.get(kind)
+    if not root:
+        raise ValueError("unknown library")
+    full = os.path.realpath(os.path.join(root, rel))
+    if not full.startswith(os.path.realpath(root) + os.sep):
+        raise ValueError("outside the library")
+    if not os.path.isfile(full):
+        raise ValueError("no such file")
+    return full
+
+
 def open_outside(url):
     """Open a URL in a real, windowed Chromium on the OS.
 
@@ -404,6 +452,15 @@ class Handler(SimpleHTTPRequestHandler):
             })
         if path == "/api/update/check":
             return self._guard(check)
+        if path == "/api/media":
+            return self._guard(media_list)
+        if path == "/api/media/file":
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            try:
+                full = media_open((q.get("kind") or [""])[0], (q.get("path") or [""])[0])
+            except Exception as exc:
+                return self._json({"ok": False, "error": str(exc)}, 404)
+            return self._send_file(full)
         if path == "/api/battery":
             return self._guard(battery)
         if path == "/api/audio":
@@ -417,6 +474,43 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/net/wifi":
             return self._guard(wifi_scan)
         return super().do_GET()
+
+    def _send_file(self, full):
+        """Serve a media file, honouring Range so seeking works in <video>."""
+        import mimetypes
+        size = os.path.getsize(full)
+        ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
+        rng = self.headers.get("Range")
+        start, end = 0, size - 1
+        status = 200
+        if rng and rng.startswith("bytes="):
+            part = rng.split("=", 1)[1].split(",")[0]
+            a, _, b = part.partition("-")
+            if a.strip():
+                start = int(a)
+            if b.strip():
+                end = min(int(b), size - 1)
+            status = 206
+        length = max(0, end - start + 1)
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(length))
+        self.send_header("Accept-Ranges", "bytes")
+        if status == 206:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
+        self.end_headers()
+        with open(full, "rb") as fh:
+            fh.seek(start)
+            remaining = length
+            while remaining > 0:
+                chunk = fh.read(min(65536, remaining))
+                if not chunk:
+                    break
+                try:
+                    self.wfile.write(chunk)
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+                remaining -= len(chunk)
 
     def do_POST(self):
         path = self.path.split("?")[0]

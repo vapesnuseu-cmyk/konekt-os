@@ -197,7 +197,7 @@ done
 
 exec chromium \
   --kiosk \
-  --app=http://127.0.0.1:8923/index.html \
+  --app=http://localhost:8923/ \
   --user-data-dir=/home/konekt/.konekt-profile \
   --no-first-run --no-default-browser-check --noerrdialogs --disable-infobars \
   --disable-translate --disable-features=TranslateUI,Translate \
@@ -224,6 +224,7 @@ UEOF
 # the lock screen is the time in the room.
 printf '0.0 0 0.0\n0\nLOCAL\n' > "$ROOTFS/etc/adjtime"
 
+mkdir -p "$ROOTFS/home/konekt/Music" "$ROOTFS/home/konekt/Videos" "$ROOTFS/home/konekt/Pictures"
 chroot "$ROOTFS" chown -R konekt:konekt /home/konekt
 # maintenance access: su on any console (password: konekt). A preview OS must
 # never lock out its owner - the /opt/konekt permission bug proved the point.
