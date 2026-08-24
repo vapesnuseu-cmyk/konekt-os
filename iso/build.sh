@@ -279,6 +279,9 @@ chmod +x "$ROOTFS/home/konekt/.xinitrc"
 printf '0.0 0 0.0\n0\nLOCAL\n' > "$ROOTFS/etc/adjtime"
 
 chroot "$ROOTFS" chown -R konekt:konekt /home/konekt
+# maintenance access: su on any console (password: konekt). A preview OS must
+# never lock out its owner - the /opt/konekt permission bug proved the point.
+echo 'root:konekt' | chroot "$ROOTFS" chpasswd
 
 # X may be started by a normal user from tty1
 mkdir -p "$ROOTFS/etc/X11"

@@ -74,7 +74,7 @@ if ($exists) {
         --memory $MemoryMB --cpus $Cpus --vram $VramMB `
         --graphicscontroller vmsvga --accelerate-3d off `
         --firmware bios --rtc-use-utc off `
-        --nic1 nat --audio-driver none `
+        --nic1 nat --audio-driver was --audio-enabled on --audio-out on --audio-controller hda `
         --boot1 disk --boot2 none --boot3 none --boot4 none | Out-Null
     & $VBoxManage storagectl $Name --name 'SATA' --add sata --controller IntelAhci --portcount 2 | Out-Null
     & $VBoxManage storageattach $Name --storagectl 'SATA' --port 0 --device 0 --type hdd --medium $vdi | Out-Null

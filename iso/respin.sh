@@ -215,7 +215,10 @@ chmod +x "$ROOTFS/home/konekt/.xinitrc"
 # the lock screen is the time in the room.
 printf '0.0 0 0.0\n0\nLOCAL\n' > "$ROOTFS/etc/adjtime"
 
-chroot "$ROOTFS" chown -R konekt:konekt /home/konekt 2>/dev/null || \
+chroot "$ROOTFS" chown -R konekt:konekt /home/konekt
+# maintenance access: su on any console (password: konekt). A preview OS must
+# never lock out its owner - the /opt/konekt permission bug proved the point.
+echo 'root:konekt' | chroot "$ROOTFS" chpasswd 2>/dev/null || \
   chown -R 1000:1000 "$ROOTFS/home/konekt"
 
 # ---------------------------------------------------------------- rebuild
