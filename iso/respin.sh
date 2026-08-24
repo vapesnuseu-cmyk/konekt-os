@@ -186,12 +186,12 @@ fi
 # ---------------------------------------------------------------- real applications
 # a respin works from an existing filesystem, so the window manager has to be
 # fetched here rather than assumed from the package list
-if [ ! -x "$ROOTFS/usr/bin/openbox" ]; then
-  say "installing openbox into the tree"
+if [ ! -x "$ROOTFS/usr/bin/openbox" ] || [ ! -x "$ROOTFS/usr/bin/wget" ]; then
+  say "installing openbox and wget into the tree"
   mount --bind /proc "$ROOTFS/proc" 2>/dev/null || true
   mount --bind /dev  "$ROOTFS/dev"  2>/dev/null || true
   cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf.respin" 2>/dev/null || true
-  chroot "$ROOTFS" bash -c "apt-get update -qq && apt-get install -y -qq --no-install-recommends openbox"     || echo "WARNING: openbox not installed - real app windows will be unmanaged"
+  chroot "$ROOTFS" bash -c "apt-get update -qq && apt-get install -y -qq --no-install-recommends openbox wget"     || echo "WARNING: openbox/wget not installed - real app windows will be unmanaged"
   umount -l "$ROOTFS/proc" 2>/dev/null || true
   umount -l "$ROOTFS/dev"  2>/dev/null || true
 fi
@@ -199,6 +199,31 @@ fi
 say "installing the KONEKT products as real applications"
 mkdir -p "$ROOTFS/opt/konekt-apps/src"
 cp -r "$REPO/iso/appshell" "$ROOTFS/opt/konekt-apps/shell"
+
+# The products themselves, downloaded into the image. Each is a self-contained
+# build of a few hundred kilobytes, so all of them fit with room to spare, and
+# an application that cannot reach the network still opens and works.
+mkdir -p "$ROOTFS/opt/konekt-apps/site"
+for spec in \
+  "konekt|konekt-tawny.vercel.app" \
+  "koach|konekt-kouch.vercel.app" \
+  "studio|lastochka-studio.vercel.app" ; do
+  id="${spec%%|*}"; host="${spec##*|}"
+  dest="$ROOTFS/opt/konekt-apps/site/$id"
+  rm -rf "$dest"; mkdir -p "$dest"
+  timeout 240 wget \
+    --recursive --level=4 --page-requisites --convert-links \
+    --no-parent --no-host-directories --domains="$host" \
+    --directory-prefix="$dest" \
+    --timeout=20 --tries=2 --quiet --reject-regex='/api/' \
+    "https://$host/" || true
+  if [ -f "$dest/index.html" ]; then
+    say "  $id downloaded - $(du -sh "$dest" | cut -f1)"
+  else
+    rm -rf "$dest"
+    echo "  WARNING: could not download $host; $id will open its deployment only"
+  fi
+done
 
 # The products' own source is NOT shipped by default, and this is deliberate.
 # Five of the six product repositories are private, and this ISO is published
@@ -258,7 +283,11 @@ for _ in $(seq 1 60); do
   sleep 0.25
 done
 
-exec chromium \
+# The shell is supervised, not exec'd. Losing it should cost you the desktop for
+# a second, not the machine: without this loop, a shell that dies takes X down
+# with it and the screen goes dead.
+while true; do
+  chromium \
   --kiosk \
   --app=http://localhost:8923/ \
   --user-data-dir=/home/konekt/.konekt-profile \
@@ -269,6 +298,8 @@ exec chromium \
   --password-store=basic \
   --disable-session-crashed-bubble --hide-crash-restore-bubble \
   --window-position=0,0
+  sleep 1
+done
 EOF
 chmod +x "$ROOTFS/home/konekt/.xinitrc"
 
@@ -287,9 +318,10 @@ cat > "$ROOTFS/etc/xdg/openbox/konekt-rc.xml" <<'OBEOF'
       <maximized>yes</maximized>
     </application>
   </applications>
-  <keyboard>
-    <keybind key="A-F4"><action name="Close"/></keybind>
-  </keyboard>
+  <!-- No keybindings here on purpose. A window manager binding is global: it
+       would close whatever has focus, and the desktop shell is a window too, so
+       Alt+F4 on the desktop destroyed the whole session. Applications close
+       themselves from the inside, where they know what they are closing. -->
 </openbox_config>
 OBEOF
 

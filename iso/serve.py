@@ -23,6 +23,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import urllib.parse
 import urllib.request
@@ -379,14 +380,86 @@ def media_open(kind, rel):
 
 APP_CATALOGUE = [
     {"id": "konekt",   "name": "KONEKT",           "url": "https://konekt-tawny.vercel.app/",
-     "repo": "https://github.com/vapesnuseu-cmyk/konekt.git"},
+     "host": "konekt-tawny.vercel.app",    "port": 8931},
     {"id": "koach",    "name": "KONEKT KOACH",     "url": "https://konekt-kouch.vercel.app/",
-     "repo": "https://github.com/vapesnuseu-cmyk/konekt-kouch.git"},
+     "host": "konekt-kouch.vercel.app",    "port": 8932},
     {"id": "studio",   "name": "LASTOCHKA STUDIO", "url": "https://lastochka-studio.vercel.app/",
-     "repo": "https://github.com/vapesnuseu-cmyk/lastochka-studio.git"},
+     "host": "lastochka-studio.vercel.app", "port": 8933},
 ]
 APP_SHELL = "/opt/konekt-apps/shell"
+APP_SITES = "/opt/konekt-apps/site"
 ELECTRON = "/opt/konekt-browser/node_modules/electron/dist/electron"
+
+
+# ------------------------------------------------------- the downloaded copies
+# Every product is downloaded into the image, whole, and served back from this
+# machine. An application opens its live deployment first, so what you get is
+# always current; when there is no network it falls back to the copy on disk and
+# still works. That is why these are applications and not bookmarks.
+SITE_SERVERS = {}
+
+
+def site_dir(app_id):
+    return os.path.join(APP_SITES, app_id)
+
+
+def site_bytes(app_id):
+    total = 0
+    for base, _dirs, files in os.walk(site_dir(app_id)):
+        for f in files:
+            try:
+                total += os.path.getsize(os.path.join(base, f))
+            except OSError:
+                pass
+    return total
+
+
+def site_serve(entry):
+    """Serve a downloaded product on loopback, and give back its address.
+
+    It gets a port of its own rather than a path under this service because the
+    pages ask for their assets from the root; served under a prefix they would
+    ask the wrong place and come back broken.
+    """
+    d = site_dir(entry["id"])
+    if not os.path.isdir(d) or not os.path.isfile(os.path.join(d, "index.html")):
+        return None
+    live = SITE_SERVERS.get(entry["id"])
+    if live is None or live.poll() is not None:
+        SITE_SERVERS[entry["id"]] = subprocess.Popen(
+            [sys.executable, "-m", "http.server", str(entry["port"]),
+             "--bind", "127.0.0.1", "--directory", d],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            start_new_session=True)
+    return "http://127.0.0.1:%d/" % entry["port"]
+
+
+def apps_refresh():
+    """Download the products again, so the copies on disk are current."""
+    if not shutil.which("wget"):
+        raise ValueError("wget is not installed")
+    done, failed = [], []
+    for a in APP_CATALOGUE:
+        dest = site_dir(a["id"])
+        staging = dest + ".new"
+        shutil.rmtree(staging, ignore_errors=True)
+        os.makedirs(staging, exist_ok=True)
+        rc = subprocess.call(
+            ["wget", "--recursive", "--level=4", "--page-requisites",
+             "--convert-links", "--no-parent", "--no-host-directories",
+             "--domains=" + a["host"], "--directory-prefix=" + staging,
+             "--timeout=20", "--tries=2", "--quiet", "--reject-regex=/api/",
+             a["url"]],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.isfile(os.path.join(staging, "index.html")):
+            shutil.rmtree(dest, ignore_errors=True)
+            os.replace(staging, dest)
+            done.append(a["id"])
+        else:
+            shutil.rmtree(staging, ignore_errors=True)
+            failed.append(a["id"])
+        del rc
+    return {"ok": True, "refreshed": done, "failed": failed}
 
 
 def apps_list():
@@ -394,30 +467,91 @@ def apps_list():
     have_runtime = os.path.isfile(ELECTRON) and os.path.isdir(APP_SHELL)
     out = []
     for a in APP_CATALOGUE:
-        src = "/opt/konekt-apps/src/" + a["id"]
+        downloaded = os.path.isfile(os.path.join(site_dir(a["id"]), "index.html"))
         out.append({"id": a["id"], "name": a["name"], "url": a["url"],
                     "installed": have_runtime,
-                    "source": os.path.isdir(src)})
+                    "downloaded": downloaded,
+                    "bytes": site_bytes(a["id"]) if downloaded else 0,
+                    "source": os.path.isdir("/opt/konekt-apps/src/" + a["id"])})
     return {"ok": True, "runtime": have_runtime, "apps": out}
 
 
-def app_launch(app_id):
-    """Start a product as a real application window."""
-    entry = next((a for a in APP_CATALOGUE if a["id"] == app_id), None)
-    if not entry:
-        raise ValueError("no such application")
+RUNNING = {}          # app id -> the process showing that product's window
+
+
+def _spawn_shell(args):
+    """Run the app shell. It draws on the session's display, not on this one."""
     if not os.path.isfile(ELECTRON):
         raise ValueError("the application runtime is not installed")
     env = dict(os.environ)
     env.setdefault("DISPLAY", ":0")
     env.setdefault("XAUTHORITY", os.path.expanduser("~/.Xauthority"))
-    subprocess.Popen(
-        [ELECTRON, APP_SHELL,
-         "--id=" + entry["id"], "--url=" + entry["url"], "--title=" + entry["name"],
-         "--no-sandbox"],
+    return subprocess.Popen(
+        [ELECTRON, APP_SHELL] + args + ["--no-sandbox"],
         env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         start_new_session=True)
-    return {"ok": True, "launched": entry["id"], "name": entry["name"]}
+
+
+def app_launch(app_id):
+    """Start a product as a real application window.
+
+    One window per product is kept here rather than in the shell, because every
+    product shares a single Electron user directory - that is what makes the
+    KONEKT sign-in shared - and Electron's own single-instance lock is keyed on
+    exactly that directory. Left to it, the first application would open and
+    every one after it would silently do nothing.
+    """
+    entry = next((a for a in APP_CATALOGUE if a["id"] == app_id), None)
+    if not entry:
+        raise ValueError("no such application")
+    live = RUNNING.get(app_id)
+    if live is not None and live.poll() is None:
+        return {"ok": True, "launched": entry["id"], "name": entry["name"], "already": True}
+    args = ["--id=" + entry["id"], "--url=" + entry["url"], "--title=" + entry["name"]]
+    local = site_serve(entry)
+    if local:
+        args.append("--offline-url=" + local)
+    RUNNING[app_id] = _spawn_shell(args)
+    return {"ok": True, "launched": entry["id"], "name": entry["name"],
+            "already": False, "offline": bool(local)}
+
+
+# ---------------------------------------------------------------- KONEKT SSO
+# The desktop signs in through the same Electron session its applications use,
+# so one sign-in covers all of them. It hands the authorize URL here, a window
+# walks the flow, and the code comes back through this box.
+SSO_RESULT = {"code": "", "state": "", "error": "", "pending": False}
+
+
+def sso_open(url):
+    if not url.startswith("https://"):
+        raise ValueError("the sign-in address must be https")
+    SSO_RESULT.update({"code": "", "state": "", "error": "", "pending": True})
+    _spawn_shell(["--sso", "--url=" + url, "--title=KONEKT"])
+    return {"ok": True}
+
+
+def sso_deliver(code, state, error):
+    SSO_RESULT.update({"code": code or "", "state": state or "",
+                       "error": error or "", "pending": False})
+    return {"ok": True}
+
+
+def sso_take():
+    """Read the result once - a code is not something to leave lying around."""
+    out = dict(SSO_RESULT)
+    if not out["pending"]:
+        SSO_RESULT.update({"code": "", "state": "", "error": ""})
+    return {"ok": True, "pending": out["pending"], "code": out["code"],
+            "state": out["state"], "error": out["error"]}
+
+
+def sso_signout(url):
+    """One session out. The applications lose the sign-in with the desktop."""
+    if url and not url.startswith("https://"):
+        raise ValueError("the sign-out address must be https")
+    _spawn_shell(["--sso-logout", "--url=" + (url or "https://konekt-sso.vercel.app/logout")])
+    return {"ok": True}
 
 
 def open_outside(url):
@@ -497,6 +631,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._guard(check)
         if path == "/api/apps":
             return self._guard(apps_list)
+        if path == "/api/sso/code":
+            return self._guard(sso_take)
         if path == "/api/media":
             return self._guard(media_list)
         if path == "/api/media/file":
@@ -587,6 +723,27 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 body = {}
             return self._guard(lambda: app_launch(body.get("id", "")))
+        if path == "/api/apps/refresh":
+            return self._guard(apps_refresh)
+        if path == "/api/sso/open":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: sso_open(body.get("url", "")))
+        if path == "/api/sso/code":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: sso_deliver(
+                body.get("code", ""), body.get("state", ""), body.get("error", "")))
+        if path == "/api/sso/signout":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: sso_signout(body.get("url", "")))
         if path == "/api/open":
             try:
                 url = (json.loads(raw or b"{}") or {}).get("url", "")

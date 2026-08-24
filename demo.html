@@ -1621,16 +1621,49 @@ function ssoLogin(){
     u.searchParams.set('nonce', nonce);
     u.searchParams.set('code_challenge', b64url(h));
     u.searchParams.set('code_challenge_method', 'S256');
+    /* On the OS the sign-in happens in the session the applications use, not in
+       this one. Otherwise the desktop would be signed in and every application
+       still signed out - which is the opposite of what signing in should mean. */
+    if(SYS) return ssoLoginInApps(u.toString());
     location.href = u.toString();
   });
+}
+/* Hand the flow to the application session and wait for the code to come back. */
+function ssoLoginInApps(url){
+  toast(TT('ssoOpening'), 2600);
+  return sysPost('/api/sso/open', { url })
+    .then(() => new Promise((resolve, reject) => {
+      let waited = 0;
+      const tick = () => {
+        fetch('/api/sso/code', { cache:'no-store' }).then(r => r.json()).then(d => {
+          if(d && d.pending){
+            waited += 1200;
+            if(waited > 300000) return reject(new Error('timed out'));
+            return setTimeout(tick, 1200);
+          }
+          if(!d || !d.code) return reject(new Error((d && d.error) || 'cancelled'));
+          resolve(d);
+        }).catch(() => setTimeout(tick, 1500));
+      };
+      setTimeout(tick, 1500);
+    }))
+    .then(d => ssoExchange(d.code, d.state))
+    .catch(err => {
+      notify({ title: TT('ssoFailed'), body: String(err.message || err), icon: IC.person });
+      return null;
+    });
 }
 function ssoFinish(){
   /* called at boot: did KONEKT SSO just send us home with a code? */
   const q = new URLSearchParams(location.search);
   const code = q.get('code'), state = q.get('state');
   if(!code) return Promise.resolve(null);
-  const want = store.get('kos.sso.s', null), verifier = store.get('kos.sso.v', null);
   history.replaceState({}, '', location.pathname);      /* never leave a code in the URL */
+  return ssoExchange(code, state);
+}
+/* One code, one exchange - whichever window the sign-in happened in. */
+function ssoExchange(code, state){
+  const want = store.get('kos.sso.s', null), verifier = store.get('kos.sso.v', null);
   store.del('kos.sso.s'); store.del('kos.sso.v');
   if(!state || state !== want || !verifier){
     notify({ title: TT('ssoFailed'), body: 'state mismatch', icon: IC.person });
@@ -1670,16 +1703,21 @@ function ssoFinish(){
     });
 }
 function ssoLogout(){
-  const tok = store.get('kos.sso.tok', null);
   ME = null;
   store.del('kos.me'); store.del('kos.sso.tok');
   renderStartMenu();
-  if(ssoAvailable()){
-    const u = new URL(SSO.issuer + '/logout');
-    u.searchParams.set('client_id', SSO.clientId);
-    u.searchParams.set('post_logout_redirect_uri', SSO.redirect);
-    location.href = u.toString();
-  } else toast(TT('ssoBye'), 2600);
+  const u = new URL(SSO.issuer + '/logout');
+  u.searchParams.set('client_id', SSO.clientId);
+  u.searchParams.set('post_logout_redirect_uri', SSO.redirect);
+  if(SYS){
+    /* one session in, one session out: the applications sign out with you */
+    sysPost('/api/sso/signout', { url: u.toString() })
+      .then(() => toast(TT('ssoBye'), 2600))
+      .catch(() => toast(TT('ssoBye'), 2600));
+    return;
+  }
+  if(ssoAvailable()) location.href = u.toString();
+  else toast(TT('ssoBye'), 2600);
 }
 
 /* ---------------------------- software update ----------------------------
@@ -1703,8 +1741,8 @@ function sysPost(path, body){
   }).then(r => r.json().then(d => { if(!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }));
 }
 
-const OS_VERSION = '1.9.1';
-const OS_BUILD = 2910;
+const OS_VERSION = '1.9.2';
+const OS_BUILD = 2920;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -3298,7 +3336,8 @@ function launchSettings(w, arg){
             ? '<div class="about-row"><span class="k">signed in</span><span class="v">@' + esc(ME.preferred_username || ME.sub || '') + '</span></div>' +
               '<div class="st-field" style="margin-top:10px"><button class="btn-line">' + TT('signOut') + '</button></div>'
             : '<div class="st-field"><button class="btn-line">' + TT('signIn') + '</button></div>') +
-          '<div class="st-note">' + TT('ssoOptionalNote') + '</div>';
+          '<div class="st-note">' + TT('ssoOptionalNote') + '</div>' +
+          (SYS ? '<div class="st-note">' + TT('ssoShared') + '</div>' : '');
         $('.btn-line', idSec).onclick = () => { ME ? ssoLogout() : ssoLogin(); setTimeout(paintId, 400); };
       };
       paintId();
@@ -3362,14 +3401,27 @@ function launchSettings(w, arg){
 
       if(SYS){
         const appsSec = sec(TT('installedApps'));
-        fetch('/api/apps', { cache:'no-store' }).then(r => r.json()).then(d => {
+        const kb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB'
+                      : n >= 1024    ? Math.round(n / 1024) + ' KB' : n + ' B';
+        const paintApps = () => fetch('/api/apps', { cache:'no-store' }).then(r => r.json()).then(d => {
           if(!d.ok) throw 0;
           appsSec.innerHTML = '<h3 class="st-t">' + TT('installedApps') + '</h3>' +
             d.apps.map(a =>
               '<div class="about-row"><span class="k">' + esc(a.name) + '</span><span class="v">' +
-              (a.installed ? 'application' : 'web') + (a.source ? ' · source' : '') + '</span></div>').join('') +
+              (a.installed ? 'application' : 'web') +
+              (a.downloaded ? ' · ' + TT('downloaded') + ' ' + kb(a.bytes) : '') +
+              '</span></div>').join('') +
+            '<div class="st-field" style="margin-top:10px"><button class="btn-line">' + TT('appsRefresh') + '</button></div>' +
             '<div class="st-note">' + TT('appsNote') + '</div>';
+          $('.btn-line', appsSec).onclick = ev => {
+            const b = ev.currentTarget;
+            b.disabled = true; b.textContent = TT('appsRefreshing');
+            sysPost('/api/apps/refresh', {})
+              .then(r => { toast(TT('appsRefreshed') + ' ' + (r.refreshed || []).length, 2600); paintApps(); })
+              .catch(err => { toast(String(err.message || err), 3200); paintApps(); });
+          };
         }).catch(() => { appsSec.innerHTML = ''; });
+        paintApps();
       }
 
       const sw2 = sec('Software update');
@@ -3477,6 +3529,10 @@ const TT_D = {
   sound:       { ru:'Звук',                   en:'Sound' },
   signIn:      { ru:'Войти через KONEKT',     en:'Sign in with KONEKT' },
   optional:    { ru:'необязательно',          en:'optional' },
+  ssoOpening:  { ru:'Вход KONEKT — окно откроется рядом',
+                 en:'KONEKT sign-in — a window is opening' },
+  ssoShared:   { ru:'Один вход на все приложения KONEKT: войдя в систему, вы войдёте и в KONEKT, KOACH и LASTOCHKA.',
+                 en:'One sign-in for every KONEKT application: signing in here signs you into KONEKT, KOACH and LASTOCHKA too.' },
   wrongPw:     { ru:'Неверный пароль',        en:'Wrong password' },
   localAcct:   { ru:'Локальный аккаунт',      en:'Local account' },
   pwSection:   { ru:'Пароль',                 en:'Password' },
@@ -3503,8 +3559,12 @@ const TT_D = {
                  en:'Started as its own application window.' },
   openInBrowser:{ ru:'Открыть в браузере',    en:'Open in the browser' },
   installedApps:{ ru:'Приложения',            en:'Applications' },
-  appsNote:    { ru:'Продукты KONEKT установлены как настоящие приложения: своё окно, своя сессия, свои данные. Каждое открывает свой рабочий сервис.',
-                 en:'The KONEKT products are installed as real applications: own window, own session, own storage. Each one opens its own live service.' },
+  downloaded:  { ru:'загружено',              en:'downloaded' },
+  appsRefresh: { ru:'Обновить приложения',    en:'Update the applications' },
+  appsRefreshing:{ ru:'Загружается…',         en:'Downloading…' },
+  appsRefreshed:{ ru:'Обновлено приложений:', en:'Applications updated:' },
+  appsNote:    { ru:'Продукты KONEKT загружены в систему целиком и запускаются как настоящие приложения: своё окно, свои данные. Приложение открывает рабочую версию, а без сети — загруженную копию.',
+                 en:'The KONEKT products are downloaded into the system in full and run as real applications: own window, own storage. An application opens the live version, and the downloaded copy when there is no network.' },
   noMedia:     { ru:'Здесь пока пусто. Положите файлы в ~/Music, ~/Videos или ~/Pictures.',
                  en:'Nothing here yet. Put files in ~/Music, ~/Videos or ~/Pictures.' },
   mediaWeb:    { ru:'В браузере медиатеки нет — она читает настоящие папки системы.',
