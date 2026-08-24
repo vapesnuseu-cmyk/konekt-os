@@ -461,6 +461,12 @@ body[data-phase="os"]   #os{display:flex}
   border-radius:var(--radius);
 }
 .btn-solid:hover{background:var(--btn-h)}
+.lock-sso{
+  margin-top:12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim-2);
+  border:1px solid var(--line-3);padding:9px 16px;border-radius:var(--radius);
+}
+.lock-sso:hover{color:var(--text);border-color:var(--line)}
+.lock-err{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--danger);min-height:13px}
 .lock-hint{margin-top:26px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim-2)}
 .lock-reset{margin-top:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim-2)}
 .lock-reset:hover{color:var(--danger)}
@@ -1579,6 +1585,24 @@ function ssoAvailable(){
   return location.origin + location.pathname.replace(/index\.html$/, '') === SSO.redirect
       || location.origin === 'http://localhost:8923';
 }
+/* A local password, hashed on the device. This locks the session, not the
+   disk - said plainly in Settings rather than implied. */
+function pwHash(pass, salt){
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + '|' + pass))
+    .then(h => b64url(h));
+}
+function pwSet(pass){
+  if(!pass){ store.del('kos.pw'); return Promise.resolve(null); }
+  const salt = randomStr(12);
+  return pwHash(pass, salt).then(h => { store.set('kos.pw', { salt, h }); return h; });
+}
+function pwCheck(pass){
+  const rec = store.get('kos.pw', null);
+  if(!rec) return Promise.resolve(true);
+  return pwHash(pass, rec.salt).then(h => h === rec.h);
+}
+function pwIsSet(){ return !!store.get('kos.pw', null); }
+
 function ssoLogin(){
   if(!ssoAvailable()){
     toast(TT('ssoOnlyOnOS'), 4200);
@@ -1680,7 +1704,7 @@ function sysPost(path, body){
 }
 
 const OS_VERSION = '1.8.0';
-const OS_BUILD = 2810;
+const OS_BUILD = 2811;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -1909,40 +1933,61 @@ function firstRun(){
       '<div style="margin-bottom:6px">' + logoLong(24) + '</div>' +
       '<div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)">who wears this headset?</div>' +
       '<input id="lkName" class="lock-in" maxlength="24" placeholder="your name" autocomplete="off" spellcheck="false">' +
+      '<input id="lkPw" class="lock-in" type="password" maxlength="64" placeholder="password — optional" autocomplete="new-password">' +
       '<button id="lkGo" class="btn-solid">begin</button>' +
     '</div>' +
-    '<div class="lock-hint">local account — it never leaves the device</div>'
+    '<div class="lock-hint">a local account is all you need — it never leaves the device</div>' +
+    '<button id="lkSso" class="lock-sso">' + TT('signIn') + ' — ' + TT('optional') + '</button>'
   );
-  const inp = $('#lkName');
+  const inp = $('#lkName'), pw = $('#lkPw');
   const go = () => {
     const name = inp.value.trim();
     if(!name){ inp.focus(); return; }
     user = { name, created: Date.now() };
     store.set('kos.user', user);
-    enterDesktop();
+    pwSet(pw.value || null).then(() => enterDesktop());
   };
   $('#lkGo').onclick = go;
-  inp.onkeydown = e => { if(e.key === 'Enter') go(); };
+  inp.onkeydown = e => { if(e.key === 'Enter'){ if(pw.value || !pw.value) go(); } };
+  pw.onkeydown = e => { if(e.key === 'Enter') go(); };
+  $('#lkSso').onclick = () => ssoLogin();
   setTimeout(() => inp.focus(), 60);
 }
 function lock(){
   setPhase('lock');
   lockShell(
     '<div class="lock-tile">' +
-      '<div class="lock-av">' + esc(user.name[0].toUpperCase()) + '</div>' +
+      ((ME && ME.picture) ? '<img class="lock-av" src="' + esc(ME.picture) + '" alt="">'
+                          : '<div class="lock-av">' + esc(user.name[0].toUpperCase()) + '</div>') +
       '<div class="lock-name">' + esc(user.name) + '</div>' +
+      (pwIsSet() ? '<input id="lkPw" class="lock-in" type="password" placeholder="password" autocomplete="current-password">' : '') +
       '<button id="lkGo" class="btn-solid">enter</button>' +
+      '<div id="lkErr" class="lock-err"></div>' +
     '</div>' +
     '<button id="lkReset" class="lock-reset">not you? erase this device</button>'
   );
-  $('#lkGo').onclick = () => enterDesktop();
+  const tryEnter = () => {
+    const field = $('#lkPw');
+    pwCheck(field ? field.value : '').then(ok => {
+      if(ok){ enterDesktop(); return; }
+      const err = $('#lkErr');
+      if(err) err.textContent = TT('wrongPw');
+      if(field){ field.value = ''; field.focus(); }
+    });
+  };
+  $('#lkGo').onclick = tryEnter;
+  const pwField = $('#lkPw');
+  if(pwField){
+    pwField.onkeydown = e => { if(e.key === 'Enter') tryEnter(); };
+    setTimeout(() => pwField.focus(), 60);
+  }
   let armed = false;
   $('#lkReset').onclick = e => {
     if(!armed){ armed = true; e.target.textContent = 'click again — erases every file'; return; }
     factoryReset();
   };
   const onKey = e => {
-    if(document.body.dataset.phase === 'lock' && e.key === 'Enter' && $('#lkGo')) enterDesktop();
+    if(document.body.dataset.phase === 'lock' && e.key === 'Enter' && $('#lkGo') && !$('#lkPw')) tryEnter();
   };
   document.addEventListener('keydown', onKey, { once:true });
 }
@@ -3197,6 +3242,38 @@ function launchSettings(w, arg){
       const noteEl = el('<div class="st-note"></div>');
       nm.appendChild(noteEl);
       function note(t){ noteEl.textContent = t; setTimeout(() => noteEl.textContent = '', 1800); }
+      /* a local password, entirely optional */
+      const pwSec = sec(TT('pwSection'));
+      const paintPw = () => {
+        pwSec.innerHTML = '<h3 class="st-t">' + TT('pwSection') + '</h3>' +
+          '<div class="st-note" style="margin:0 0 10px">' + (pwIsSet() ? TT('pwSetTxt') : TT('pwNone')) + '</div>' +
+          '<div class="st-field"><input class="st-in" type="password" placeholder="' + TT('pwNew') + '" autocomplete="new-password">' +
+          '<button class="btn-line">' + TT('pwSave') + '</button>' +
+          (pwIsSet() ? '<button class="btn-line danger">' + TT('pwRemove') + '</button>' : '') + '</div>' +
+          '<div class="st-note">' + TT('pwNote') + '</div>';
+        const field = $('input', pwSec), save = $('.btn-line', pwSec), rm = $('.btn-line.danger', pwSec);
+        save.onclick = () => {
+          if(!field.value){ field.focus(); return; }
+          pwSet(field.value).then(() => { toast(TT('pwSetTxt'), 2200); paintPw(); });
+        };
+        if(rm) rm.onclick = () => pwSet(null).then(() => { toast(TT('pwNone'), 2200); paintPw(); });
+        field.onkeydown = e => { if(e.key === 'Enter') save.click(); e.stopPropagation(); };
+      };
+      paintPw();
+
+      /* KONEKT SSO is an extra, never a requirement */
+      const idSec = sec('KONEKT');
+      const paintId = () => {
+        idSec.innerHTML = '<h3 class="st-t">KONEKT</h3>' +
+          (ME
+            ? '<div class="about-row"><span class="k">signed in</span><span class="v">@' + esc(ME.preferred_username || ME.sub || '') + '</span></div>' +
+              '<div class="st-field" style="margin-top:10px"><button class="btn-line">' + TT('signOut') + '</button></div>'
+            : '<div class="st-field"><button class="btn-line">' + TT('signIn') + '</button></div>') +
+          '<div class="st-note">' + TT('ssoOptionalNote') + '</div>';
+        $('.btn-line', idSec).onclick = () => { ME ? ssoLogout() : ssoLogin(); setTimeout(paintId, 400); };
+      };
+      paintId();
+
       sec('Identity').insertAdjacentHTML('beforeend',
         '<div class="about-row"><span class="k">home</span><span class="v">/home/user</span></div>' +
         '<div class="about-row"><span class="k">since</span><span class="v">' + new Date(user.created || Date.now()).toLocaleDateString() + '</span></div>' +
@@ -3358,12 +3435,25 @@ const TT_D = {
   network:     { ru:'Сеть',                   en:'Network' },
   sound:       { ru:'Звук',                   en:'Sound' },
   signIn:      { ru:'Войти через KONEKT',     en:'Sign in with KONEKT' },
+  optional:    { ru:'необязательно',          en:'optional' },
+  wrongPw:     { ru:'Неверный пароль',        en:'Wrong password' },
+  localAcct:   { ru:'Локальный аккаунт',      en:'Local account' },
+  pwSection:   { ru:'Пароль',                 en:'Password' },
+  pwNone:      { ru:'Пароля нет — вход без него',  en:'No password — you just enter' },
+  pwSetTxt:    { ru:'Пароль установлен',      en:'Password is set' },
+  pwNew:       { ru:'Новый пароль',           en:'New password' },
+  pwSave:      { ru:'Сохранить',              en:'Save' },
+  pwRemove:    { ru:'Убрать пароль',          en:'Remove password' },
+  pwNote:      { ru:'Пароль запирает сессию, а не диск: он хранится хешем на устройстве. Аккаунт KONEKT для входа не нужен и никогда не потребуется.',
+                 en:'The password locks the session, not the disk: it is stored as a hash on the device. A KONEKT account is not required to log in and never will be.' },
   signOut:     { ru:'Выйти',                  en:'Sign out' },
   ssoHello:    { ru:'С возвращением,',        en:'Welcome back,' },
   ssoBody:     { ru:'Ваш профиль и оформление KONEKT перенесены в систему.',
                  en:'Your KONEKT profile and appearance came with you.' },
   ssoFailed:   { ru:'Не удалось войти',       en:'Sign-in failed' },
   ssoBye:      { ru:'Вы вышли из аккаунта',   en:'Signed out' },
+  ssoOptionalNote: { ru:'Это дополнение, а не условие входа: KONEKT приносит имя, аватар и оформление. Без него система работает полностью.',
+                     en:'An extra, never a condition of logging in: KONEKT brings your name, avatar and appearance. Everything works without it.' },
   ssoOnlyOnOS: { ru:'Вход работает в самой системе (localhost:8923) — здесь адрес не тот, что зарегистрирован в SSO.',
                  en:'Sign-in works on the OS itself (localhost:8923) — this address is not the one registered with SSO.' },
   library:     { ru:'Медиатека',              en:'Library' },
