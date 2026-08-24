@@ -365,6 +365,43 @@ def media_list():
     return {"ok": True, "library": out, "dirs": MEDIA_DIRS}
 
 
+def media_save(name, data_url):
+    """Write a picture the camera just took into ~/Pictures.
+
+    The name is taken apart rather than trusted: only a plain file name with a
+    known picture extension is allowed, so nothing can be talked into writing
+    outside the library.
+    """
+    name = os.path.basename(name or "")
+    if not name or name.startswith("."):
+        raise ValueError("that is not a file name")
+    if not name.lower().endswith(MEDIA_EXT["pictures"]):
+        raise ValueError("that is not a picture")
+    if not re.match(r"^[A-Za-z0-9._-]+$", name):
+        raise ValueError("that name has characters a file name should not")
+
+    head, _, b64 = (data_url or "").partition(",")
+    if not b64 or not head.startswith("data:image/") or ";base64" not in head:
+        raise ValueError("expected a base64 image")
+    import base64
+    try:
+        blob = base64.b64decode(b64, validate=True)
+    except Exception:
+        raise ValueError("that is not valid base64")
+    if len(blob) > 24 * 1024 * 1024:
+        raise ValueError("that picture is too large")
+
+    root = MEDIA_DIRS["pictures"]
+    os.makedirs(root, exist_ok=True)
+    full = os.path.join(root, name)
+    tmp = full + ".part"
+    with open(tmp, "wb") as fh:
+        fh.write(blob)
+    os.replace(tmp, full)
+    return {"ok": True, "saved": name, "bytes": len(blob),
+            "url": "/api/media/file?kind=pictures&path=" + urllib.parse.quote(name)}
+
+
 def media_open(kind, rel):
     """Resolve a library path safely - nothing outside the three folders."""
     root = MEDIA_DIRS.get(kind)
@@ -693,9 +730,18 @@ class Handler(SimpleHTTPRequestHandler):
                     return
                 remaining -= len(chunk)
 
+    # A picture from the camera is the largest thing anything here sends, and it
+    # is capped well below this. Refuse anything bigger rather than allocate it.
+    MAX_BODY = 32 * 1024 * 1024
+
     def do_POST(self):
         path = self.path.split("?")[0]
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = -1
+        if length < 0 or length > self.MAX_BODY:
+            return self._json({"ok": False, "error": "body too large"}, 413)
         raw = self.rfile.read(length) if length else b""
         if path == "/api/update/apply":
             return self._guard(apply_update)
@@ -725,6 +771,12 @@ class Handler(SimpleHTTPRequestHandler):
             return self._guard(lambda: app_launch(body.get("id", "")))
         if path == "/api/apps/refresh":
             return self._guard(apps_refresh)
+        if path == "/api/media/save":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: media_save(body.get("name", ""), body.get("dataUrl", "")))
         if path == "/api/sso/open":
             try:
                 body = json.loads(raw or b"{}") or {}
