@@ -1051,6 +1051,11 @@ input[type="range"]::-moz-range-thumb{width:13px;height:13px;background:var(--te
 }
 .at-i.sel{border-color:var(--text);background:var(--hover-2);color:var(--text)}
 
+/* display modes in Settings */
+.disp-grid{display:flex;flex-wrap:wrap;gap:6px}
+.disp-b{font-family:var(--mono);letter-spacing:.02em}
+.disp-b.on{background:var(--text);color:var(--bg);border-color:var(--text);cursor:default}
+
 /* keyboard map in Settings */
 .keys{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;align-items:baseline}
 .keys kbd{
@@ -1530,7 +1535,7 @@ function sysPost(path, body){
 }
 
 const OS_VERSION = '1.7.0';
-const OS_BUILD = 2791;
+const OS_BUILD = 2792;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -2931,6 +2936,40 @@ function launchSettings(w, arg){
           '<kbd>' + esc(k[0]) + '</kbd><span>' + esc(k[1]) + '</span>').join('') + '</div>' +
         '<div class="st-note">Alt+Tab and the Super key belong to the machine you are on when KONEKT OS runs in a ' +
         'browser tab, so the window switcher also answers to Alt+` and search to Ctrl+Space.</div>');
+
+      if(SYS){
+        const dp = sec('Display');
+        dp.insertAdjacentHTML('beforeend', '<div class="disp-modes" id="dispModes"><div class="st-note">…</div></div>');
+        const paintDisp = () => {
+          const box = $('#dispModes', dp);
+          fetch('/api/display', { cache:'no-store' }).then(r => r.json()).then(d => {
+            if(!d.ok) throw 0;
+            const cur = d.current || {};
+            const COMMON = [[1280,800],[1366,768],[1600,900],[1680,1050],[1920,1080],[2560,1440]];
+            const offered = d.modes.map(m => [m.w, m.h]);
+            const all = [];
+            COMMON.concat(offered).forEach(([w, h]) => {
+              if(!all.some(x => x[0] === w && x[1] === h)) all.push([w, h]);
+            });
+            all.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            box.innerHTML = '<div class="disp-grid">' + all.map(([w, h]) => {
+              const on = cur.w === w && cur.h === h;
+              return '<button class="btn-line disp-b' + (on ? ' on' : '') + '" data-w="' + w + '" data-h="' + h + '">' +
+                w + '\u00d7' + h + (on ? ' \u2713' : '') + '</button>';
+            }).join('') + '</div>' +
+            '<div class="st-note">The desktop follows instantly \u2014 every screen in KONEKT OS is fluid. ' +
+            'Sizes the driver does not offer are synthesised on the fly.</div>';
+            $$('.disp-b', box).forEach(b => b.onclick = () => {
+              if(b.classList.contains('on')) return;
+              b.textContent = '\u2026';
+              sysPost('/api/display/set', { width: +b.dataset.w, height: +b.dataset.h })
+                .then(() => { toast(b.dataset.w + '\u00d7' + b.dataset.h, 2200); setTimeout(paintDisp, 600); })
+                .catch(e => { toast(String(e.message || e), 3000); paintDisp(); });
+            });
+          }).catch(() => { box.innerHTML = '<div class="st-note">Display control is not available here.</div>'; });
+        };
+        paintDisp();
+      }
 
       const sw2 = sec('Software update');
       const upRow = el('<div class="st-field"></div>');

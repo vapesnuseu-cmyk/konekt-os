@@ -204,6 +204,61 @@ def wifi_connect(ssid, password):
     return {"ok": True, "ssid": ssid}
 
 
+def _xrandr(*args):
+    env = dict(os.environ)
+    env.setdefault("DISPLAY", ":0")
+    out = subprocess.run(["xrandr"] + list(args), capture_output=True, text=True,
+                         timeout=10, env=env)
+    if out.returncode != 0:
+        raise ValueError((out.stderr or out.stdout or "xrandr failed").strip().splitlines()[-1])
+    return out.stdout
+
+
+def display_modes():
+    """The connected output, its current resolution, and what it offers."""
+    txt = _xrandr()
+    output, current, modes, seen = None, None, [], set()
+    for line in txt.splitlines():
+        m = re.match(r"^(\S+) connected", line)
+        if m:
+            output = m.group(1)
+            continue
+        m = re.match(r"^\s+(\d+)x(\d+)\S*\s", line)
+        if m and output:
+            w, h = int(m.group(1)), int(m.group(2))
+            if (w, h) in seen:
+                continue
+            seen.add((w, h))
+            star = "*" in line
+            modes.append({"w": w, "h": h, "current": star})
+            if star:
+                current = {"w": w, "h": h}
+    return {"ok": True, "output": output, "current": current, "modes": modes[:24]}
+
+
+def display_set(w, h):
+    """Switch resolution; invent the mode with cvt when the driver lacks it."""
+    w, h = int(w), int(h)
+    if not (640 <= w <= 7680 and 480 <= h <= 4320):
+        raise ValueError("unreasonable size %dx%d" % (w, h))
+    info = display_modes()
+    out = info.get("output") or "Virtual-1"
+    name = "%dx%d" % (w, h)
+    if not any(m["w"] == w and m["h"] == h for m in info["modes"]):
+        cvt = subprocess.run(["cvt", str(w), str(h), "60"],
+                             capture_output=True, text=True, timeout=10).stdout
+        m = re.search(r'Modeline\s+"[^"]+"\s+(.+)', cvt)
+        if not m:
+            raise ValueError("no such mode and cvt cannot compute one")
+        try:
+            _xrandr("--newmode", name, *m.group(1).split())
+        except ValueError:
+            pass                                  # already defined
+        _xrandr("--addmode", out, name)
+    _xrandr("--output", out, "--mode", name)
+    return {"ok": True, "width": w, "height": h}
+
+
 def open_outside(url):
     """Open a URL in a real, windowed Chromium on the OS.
 
@@ -271,6 +326,8 @@ class Handler(SimpleHTTPRequestHandler):
             })
         if path == "/api/update/check":
             return self._guard(check)
+        if path == "/api/display":
+            return self._guard(display_modes)
         if path == "/api/net/status":
             return self._guard(net_status)
         if path == "/api/net/wifi":
@@ -289,6 +346,12 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 body = {}
             return self._guard(lambda: wifi_connect(body.get("ssid", ""), body.get("password", "")))
+        if path == "/api/display/set":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: display_set(body.get("width", 0), body.get("height", 0)))
         if path == "/api/open":
             try:
                 url = (json.loads(raw or b"{}") or {}).get("url", "")

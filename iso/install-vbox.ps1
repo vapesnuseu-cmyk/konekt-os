@@ -82,7 +82,10 @@ if ($exists) {
 
 $type = if ($Headless) { 'headless' } else { 'gui' }
 Write-Host "Starting '$Name' ($type)."
+& $VBoxManage setextradata $Name 'CustomVideoMode1' '1920x1080x32' 2>$null
 & $VBoxManage startvm $Name --type $type | Out-Null
+Start-Sleep -Seconds 4
+Invoke-VBoxQuiet controlvm $Name setvideomodehint 1920 1080 32
 
 Write-Host ''
 Write-Host 'KONEKT OS is installed on its own disk now:'
