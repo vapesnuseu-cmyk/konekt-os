@@ -209,6 +209,15 @@ exec chromium \
 EOF
 chmod +x "$ROOTFS/home/konekt/.xinitrc"
 
+# the mainline vboxguest module creates /dev/vboxguest root-only; the udev rule
+# that opens it ships in a Debian package trixie does not have - so we are it
+mkdir -p "$ROOTFS/etc/udev/rules.d"
+cat > "$ROOTFS/etc/udev/rules.d/60-vboxguest.rules" <<'UEOF'
+KERNEL=="vboxguest", SUBSYSTEM=="misc", MODE="0666"
+KERNEL=="vboxuser", SUBSYSTEM=="misc", MODE="0666"
+UEOF
+
+
 
 # A PC's RTC usually holds local time (VirtualBox presents it that way, and so
 # does any machine that dual-boots Windows). Read it as local so the clock on
