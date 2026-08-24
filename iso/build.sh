@@ -173,6 +173,34 @@ exec chromium \
   --window-position=0,0
 EOF
 chmod +x "$ROOTFS/home/konekt/.xinitrc"
+
+# X must not gamble on the virtual GPU's mood: start at a real resolution.
+# Settings -> Display can move within this framebuffer afterwards.
+mkdir -p "$ROOTFS/etc/X11/xorg.conf.d"
+cat > "$ROOTFS/etc/X11/xorg.conf.d/10-konekt-display.conf" <<'XEOF'
+Section "Monitor"
+    Identifier "Virtual1"
+    Option "PreferredMode" "1920x1080"
+EndSection
+
+Section "Device"
+    Identifier "Card0"
+    Driver "modesetting"
+    Option "Monitor-Virtual-1" "Virtual1"
+    Option "Monitor-Virtual1" "Virtual1"
+EndSection
+
+Section "Screen"
+    Identifier "Screen0"
+    Device "Card0"
+    Monitor "Virtual1"
+    SubSection "Display"
+        Modes "1920x1080"
+        Virtual 1920 1080
+    EndSubSection
+EndSection
+XEOF
+
 # A PC's RTC usually holds local time (VirtualBox presents it that way, and so
 # does any machine that dual-boots Windows). Read it as local so the clock on
 # the lock screen is the time in the room.
