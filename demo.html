@@ -946,6 +946,19 @@ input[type="range"]::-moz-range-thumb{width:13px;height:13px;background:var(--te
 }
 .qs-foot button:hover{background:var(--hover-2)}
 
+/* quick settings: network */
+.qs-net-row{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;font-weight:600;padding:2px 0 8px}
+.qs-net-s{color:var(--dim-2);font-size:10px;letter-spacing:.04em}
+.qs-net-note{font-size:10.5px;color:var(--dim-2);line-height:1.6}
+.qs-wifi{width:100%;display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line-3)}
+.qs-wifi:last-child{border-bottom:0}
+.qs-wifi:hover{background:var(--hover)}
+.qs-wifi .t{font-size:11.5px}
+.qs-wifi .s{font-size:10px;color:var(--dim-2);font-family:var(--mono)}
+.qs-join{display:flex;gap:6px;margin-top:4px}
+.qs-join input{flex:1;border:1px solid var(--line-2);padding:8px 10px;font-size:12px;border-radius:var(--radius);min-width:0}
+.qs-join .btn-solid{padding:8px 14px}
+
 /* notification centre */
 .nc-i{width:100%;display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line-3);text-align:left}
 .nc-i:last-child{border-bottom:0}
@@ -1517,7 +1530,7 @@ function sysPost(path, body){
 }
 
 const OS_VERSION = '1.7.0';
-const OS_BUILD = 2790;
+const OS_BUILD = 2791;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -3019,7 +3032,18 @@ const TT_D = {
   reboot:      { ru:'Перезагрузить',          en:'Reboot' },
   shutdown:    { ru:'Выключить',              en:'Shut down' },
   showDesk:    { ru:'Показать рабочий стол',  en:'Show desktop' },
-  keyboard:    { ru:'Клавиши',                en:'Keyboard' }
+  keyboard:    { ru:'Клавиши',                en:'Keyboard' },
+  network:     { ru:'Сеть',                   en:'Network' },
+  netUp:       { ru:'Подключено',             en:'Connected' },
+  netDown:     { ru:'Нет сети',               en:'No network' },
+  noWifiHw:    { ru:'Wi-Fi адаптера нет. В виртуальной машине сеть — проводная (это нормально); Wi-Fi появляется на настоящем ноутбуке с флешки.',
+                 en:'No Wi-Fi adapter. A VM\u2019s network is wired (that is normal); Wi-Fi appears when booted on a real laptop.' },
+  scanning:    { ru:'Ищем сети…',             en:'Scanning…' },
+  noNets:      { ru:'Сетей не найдено',       en:'No networks found' },
+  connecting:  { ru:'Подключаемся к',         en:'Connecting to' },
+  connectedTo: { ru:'Подключено к',           en:'Connected to' },
+  wifiPass:    { ru:'Пароль сети',            en:'Network password' },
+  join:        { ru:'Подключиться',           en:'Join' }
 };
 function TT(k){
   const l = (typeof KONEKT_LOOK !== 'undefined' && KONEKT_LOOK.lang() === 'ru') ? 'ru' : 'en';
@@ -3241,6 +3265,7 @@ function qsRender(){
           '<button class="qs-tile' + (screenCfg.dnd ? ' on' : '') + '" id="qsDnd">' + IC.dnd + '<span>' + TT('dnd') + '</span></button>' +
         '</div>' +
       '</div>' +
+      (SYS ? '<div class="qs-sec"><div class="qs-l">' + TT('network') + '</div><div id="qsNet"><div class="qs-net-note">…</div></div></div>' : '') +
       '<div class="qs-sec"><div class="qs-l">' + TT('spaces') + '</div><div class="qs-tiles">' +
         [0, 1, 2, 3].map(i => '<button class="qs-tile' + (i === wm.space ? ' on' : '') + '" data-space="' + i + '">' +
           IC.grid4 + '<span>' + (i + 1) + '</span></button>').join('') +
@@ -3264,6 +3289,7 @@ function qsRender(){
   $('#qsNight', p).onclick = () => { screenCfg.night = !screenCfg.night; applyScreen(); qsRender(); };
   $('#qsDnd', p).onclick = () => { screenCfg.dnd = !screenCfg.dnd; applyScreen(); qsRender(); };
   $('#qsAll', p).onclick = () => { qsToggle(false); openApp('set', { pane:'appearance' }); };
+  if(SYS) qsNetRender();
   $('#qsLock', p).onclick = () => { qsToggle(false); lock(); };
 }
 function qsToggle(on){
@@ -3272,6 +3298,60 @@ function qsToggle(on){
   if(want){ ncToggle(false); toggleStart(false); qsRender(); }
   p.classList.toggle('on', want);
   $('#trQs').classList.toggle('on', want);
+}
+
+/* ---- network section (only when there is a system underneath) ---- */
+function qsNetRender(){
+  const box = $('#qsNet');
+  if(!box || !SYS) return;
+  fetch('/api/net/status', { cache:'no-store' }).then(r => r.json()).then(st => {
+    if(!st.ok) throw 0;
+    const wired = (st.devices || []).find(d => d.type === 'ethernet');
+    let h = '<div class="qs-net-row">' +
+      '<span>' + (st.connected ? TT('netUp') : TT('netDown')) + '</span>' +
+      (wired ? '<span class="qs-net-s">' + esc(wired.device) + ' · ' + esc(wired.state) + '</span>' : '') +
+      '</div>';
+    if(!st.haveWifi){
+      h += '<div class="qs-net-note">' + TT('noWifiHw') + '</div>';
+      box.innerHTML = h;
+      return;
+    }
+    box.innerHTML = h + '<div class="qs-net-note">' + TT('scanning') + '</div>';
+    fetch('/api/net/wifi', { cache:'no-store' }).then(r => r.json()).then(w => {
+      let list = '';
+      (w.networks || []).forEach(n => {
+        list += '<button class="qs-wifi" data-ssid="' + esc(n.ssid) + '" data-sec="' + (n.secured ? 1 : 0) + '">' +
+          '<span class="t">' + esc(n.ssid) + (n.inUse ? ' ✓' : '') + '</span>' +
+          '<span class="s">' + n.signal + '%' + (n.secured ? ' · 🔒' : '') + '</span></button>';
+      });
+      box.innerHTML = h + (list || '<div class="qs-net-note">' + TT('noNets') + '</div>');
+      $$('.qs-wifi', box).forEach(b => b.onclick = () => qsWifiJoin(b.dataset.ssid, b.dataset.sec === '1'));
+    }).catch(() => { box.innerHTML = h; });
+  }).catch(() => { box.innerHTML = '<div class="qs-net-note">' + TT('netDown') + '</div>'; });
+}
+function qsWifiJoin(ssid, secured){
+  const box = $('#qsNet');
+  if(!secured){
+    box.innerHTML = '<div class="qs-net-note">' + TT('connecting') + ' ' + esc(ssid) + '…</div>';
+    sysPost('/api/net/connect', { ssid })
+      .then(() => { toast(TT('connectedTo') + ' ' + ssid, 2600); qsNetRender(); })
+      .catch(e => { toast(String(e.message || e), 3200); qsNetRender(); });
+    return;
+  }
+  box.innerHTML =
+    '<div class="qs-net-row"><span>' + esc(ssid) + '</span></div>' +
+    '<div class="qs-join"><input type="password" placeholder="' + TT('wifiPass') + '" aria-label="' + TT('wifiPass') + '">' +
+    '<button class="btn-solid">' + TT('join') + '</button></div>';
+  const inp = $('.qs-join input', box), go = $('.qs-join button', box);
+  const join = () => {
+    box.innerHTML = '<div class="qs-net-note">' + TT('connecting') + ' ' + esc(ssid) + '…</div>';
+    sysPost('/api/net/connect', { ssid, password: inp.value })
+      .then(() => { toast(TT('connectedTo') + ' ' + ssid, 2600); qsNetRender(); })
+      .catch(e => { toast(String(e.message || e), 3400); qsNetRender(); });
+  };
+  go.onclick = join;
+  inp.onkeydown = e => { if(e.key === 'Enter') join(); e.stopPropagation(); };
+  setTimeout(() => inp.focus(), 30);
 }
 
 /* ---------------------------- universal search ---------------------------- */

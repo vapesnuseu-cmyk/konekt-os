@@ -143,6 +143,67 @@ def apply_update():
     return {"ok": True, "version": remote.get("version"), "sha256": got}
 
 
+def _nmcli(*args, timeout=25):
+    out = subprocess.run(["nmcli", "-t", "--colors", "no"] + list(args),
+                         capture_output=True, text=True, timeout=timeout)
+    if out.returncode != 0:
+        raise ValueError((out.stderr or out.stdout or "nmcli failed").strip().splitlines()[-1])
+    return out.stdout
+
+
+def net_status():
+    """What the network looks like right now, in the shell's terms."""
+    devices = []
+    have_wifi = False
+    for line in _nmcli("-f", "DEVICE,TYPE,STATE,CONNECTION", "device").splitlines():
+        parts = (line.split(":") + ["", "", "", ""])[:4]
+        dev, typ, state, conn = parts
+        if typ in ("loopback",):
+            continue
+        if typ == "wifi":
+            have_wifi = True
+        devices.append({"device": dev, "type": typ, "state": state, "connection": conn})
+    connected = any(d["state"].startswith("connected") for d in devices)
+    wifi_on = False
+    try:
+        wifi_on = _nmcli("radio", "wifi").strip() == "enabled"
+    except Exception:
+        pass
+    return {"ok": True, "connected": connected, "haveWifi": have_wifi,
+            "wifiOn": wifi_on, "devices": devices}
+
+
+def wifi_scan():
+    if not net_status()["haveWifi"]:
+        return {"ok": True, "haveWifi": False, "networks": []}
+    try:
+        _nmcli("device", "wifi", "rescan", timeout=20)
+    except Exception:
+        pass                                      # a scan may be throttled; list what is cached
+    nets, seen = [], set()
+    for line in _nmcli("-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list").splitlines():
+        parts = (line.split(":") + ["", "", "", ""])[:4]
+        in_use, ssid, signal, security = parts
+        if not ssid or ssid in seen:
+            continue
+        seen.add(ssid)
+        nets.append({"ssid": ssid, "inUse": in_use == "*",
+                     "signal": int(signal) if signal.isdigit() else 0,
+                     "secured": bool(security and security != "--")})
+    nets.sort(key=lambda n: (-n["inUse"], -n["signal"]))
+    return {"ok": True, "haveWifi": True, "networks": nets[:12]}
+
+
+def wifi_connect(ssid, password):
+    if not ssid:
+        raise ValueError("which network?")
+    args = ["device", "wifi", "connect", ssid]
+    if password:
+        args += ["password", password]
+    _nmcli(*args, timeout=45)
+    return {"ok": True, "ssid": ssid}
+
+
 def open_outside(url):
     """Open a URL in a real, windowed Chromium on the OS.
 
@@ -210,6 +271,10 @@ class Handler(SimpleHTTPRequestHandler):
             })
         if path == "/api/update/check":
             return self._guard(check)
+        if path == "/api/net/status":
+            return self._guard(net_status)
+        if path == "/api/net/wifi":
+            return self._guard(wifi_scan)
         return super().do_GET()
 
     def do_POST(self):
@@ -218,6 +283,12 @@ class Handler(SimpleHTTPRequestHandler):
         raw = self.rfile.read(length) if length else b""
         if path == "/api/update/apply":
             return self._guard(apply_update)
+        if path == "/api/net/connect":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: wifi_connect(body.get("ssid", ""), body.get("password", "")))
         if path == "/api/open":
             try:
                 url = (json.loads(raw or b"{}") or {}).get("url", "")
