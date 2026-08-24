@@ -1,6 +1,6 @@
 {
   "version": "1.7.0",
-  "build": 2793,
+  "build": 2795,
   "channel": "stable",
   "date": "2026-08-23",
   "summary": "Рабочие столы, переключатель окон, поиск по всей системе, быстрые настройки и уведомления.",
@@ -14,7 +14,7 @@
   ],
   "payload": {
     "file": "demo.html",
-    "sha256": "53acdb41dca6fa92de5e3237360d6e561de9966c0537ec6dab624794d962efce",
-    "bytes": 188678
+    "sha256": "faecf76c06e67dbba8fd88f8880e574bd9dfcf1a79e5ab1fc1e07cf8e75580b9",
+    "bytes": 194848
   }
 }

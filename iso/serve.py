@@ -275,6 +275,59 @@ def kb_freshness():
     return {"ok": True, "origin": KB_ORIGIN, "etag": et.strip('"W/ ')}
 
 
+def battery():
+    """Battery state from /sys, for the tray. Absent hardware is not an error."""
+    base = "/sys/class/power_supply"
+    try:
+        names = sorted(os.listdir(base))
+    except OSError:
+        names = []
+    for n in names:
+        d = os.path.join(base, n)
+        try:
+            with open(os.path.join(d, "type")) as fh:
+                if fh.read().strip() != "Battery":
+                    continue
+            with open(os.path.join(d, "capacity")) as fh:
+                cap = int(fh.read().strip())
+            status = ""
+            try:
+                with open(os.path.join(d, "status")) as fh:
+                    status = fh.read().strip()
+            except OSError:
+                pass
+            return {"ok": True, "present": True, "percent": cap,
+                    "charging": status in ("Charging", "Full")}
+        except (OSError, ValueError):
+            continue
+    return {"ok": True, "present": False}
+
+
+def _wpctl(*args):
+    out = subprocess.run(["wpctl"] + list(args), capture_output=True, text=True, timeout=10)
+    if out.returncode != 0:
+        raise ValueError((out.stderr or out.stdout or "wpctl failed").strip().splitlines()[-1])
+    return out.stdout
+
+
+def audio_status():
+    txt = _wpctl("get-volume", "@DEFAULT_AUDIO_SINK@")
+    m = re.search(r"Volume:\s+([\d.]+)", txt)
+    if not m:
+        raise ValueError("no default audio sink")
+    return {"ok": True, "volume": round(float(m.group(1)) * 100),
+            "muted": "MUTED" in txt}
+
+
+def audio_set(volume, muted):
+    if volume is not None:
+        v = max(0, min(150, int(volume)))
+        _wpctl("set-volume", "@DEFAULT_AUDIO_SINK@", "%d%%" % v)
+    if muted is not None:
+        _wpctl("set-mute", "@DEFAULT_AUDIO_SINK@", "1" if muted else "0")
+    return audio_status()
+
+
 def open_outside(url):
     """Open a URL in a real, windowed Chromium on the OS.
 
@@ -342,6 +395,10 @@ class Handler(SimpleHTTPRequestHandler):
             })
         if path == "/api/update/check":
             return self._guard(check)
+        if path == "/api/battery":
+            return self._guard(battery)
+        if path == "/api/audio":
+            return self._guard(audio_status)
         if path == "/api/kb/fresh":
             return self._guard(kb_freshness)
         if path == "/api/display":
@@ -358,6 +415,12 @@ class Handler(SimpleHTTPRequestHandler):
         raw = self.rfile.read(length) if length else b""
         if path == "/api/update/apply":
             return self._guard(apply_update)
+        if path == "/api/audio/set":
+            try:
+                body = json.loads(raw or b"{}") or {}
+            except ValueError:
+                body = {}
+            return self._guard(lambda: audio_set(body.get("volume"), body.get("muted")))
         if path == "/api/net/connect":
             try:
                 body = json.loads(raw or b"{}") or {}
