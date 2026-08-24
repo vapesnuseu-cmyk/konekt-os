@@ -1,6 +1,6 @@
 {
   "version": "1.9.2",
-  "build": 2920,
+  "build": 2921,
   "channel": "stable",
   "date": "2026-08-24",
   "summary": "Alt+F4 больше не закрывает рабочий стол, продукты KONEKT загружены в систему целиком, и вход KONEKT теперь один на все приложения.",
@@ -14,7 +14,7 @@
   ],
   "payload": {
     "file": "demo.html",
-    "sha256": "4539e4b235ec73e1bb4bf95c5f4b49dbbfd32846572b9166309966719f4a6d85",
-    "bytes": 219993
+    "sha256": "a316cc06082b835b8477af46ac420ea96efae30b0eaa34d301aff9664981d890",
+    "bytes": 220657
   }
 }

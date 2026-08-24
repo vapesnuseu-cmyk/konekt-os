@@ -1628,10 +1628,14 @@ function ssoLogin(){
     location.href = u.toString();
   });
 }
-/* Hand the flow to the application session and wait for the code to come back. */
+/* Hand the flow to the application session and wait for the code to come back.
+   An older system updates its shell without updating its service, so this can
+   arrive somewhere that has never heard of /api/sso/open. That is not a failure
+   to report at the user: sign in the old way instead, in this window. */
 function ssoLoginInApps(url){
   toast(TT('ssoOpening'), 2600);
   return sysPost('/api/sso/open', { url })
+    .catch(() => { location.href = url; throw { handled: true }; })
     .then(() => new Promise((resolve, reject) => {
       let waited = 0;
       const tick = () => {
@@ -1649,6 +1653,7 @@ function ssoLoginInApps(url){
     }))
     .then(d => ssoExchange(d.code, d.state))
     .catch(err => {
+      if(err && err.handled) return null;          /* already sent to the old path */
       notify({ title: TT('ssoFailed'), body: String(err.message || err), icon: IC.person });
       return null;
     });
@@ -1742,7 +1747,7 @@ function sysPost(path, body){
 }
 
 const OS_VERSION = '1.9.2';
-const OS_BUILD = 2920;
+const OS_BUILD = 2921;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -3411,9 +3416,14 @@ function launchSettings(w, arg){
               (a.installed ? 'application' : 'web') +
               (a.downloaded ? ' · ' + TT('downloaded') + ' ' + kb(a.bytes) : '') +
               '</span></div>').join('') +
-            '<div class="st-field" style="margin-top:10px"><button class="btn-line">' + TT('appsRefresh') + '</button></div>' +
+            /* an older service knows nothing about downloaded copies; do not
+               offer to refresh something it cannot refresh */
+            (d.apps.some(a => a.downloaded !== undefined)
+              ? '<div class="st-field" style="margin-top:10px"><button class="btn-line">' + TT('appsRefresh') + '</button></div>'
+              : '') +
             '<div class="st-note">' + TT('appsNote') + '</div>';
-          $('.btn-line', appsSec).onclick = ev => {
+          const refreshBtn = $('.btn-line', appsSec);
+          if(refreshBtn) refreshBtn.onclick = ev => {
             const b = ev.currentTarget;
             b.disabled = true; b.textContent = TT('appsRefreshing');
             sysPost('/api/apps/refresh', {})
