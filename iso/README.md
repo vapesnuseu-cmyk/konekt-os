@@ -95,6 +95,21 @@ A note on hardware in VMs: the bluetooth stack and firmware are in the image,
 but VirtualBox does not hand the guest a bluetooth adapter unless you pass one
 through over USB. Boot from a USB stick on a real laptop and it is live.
 
+## What 1.7.2 carries
+
+- **The real KONEKT BROWSER** (`/opt/konekt-browser`, Electron/Chromium) - the
+  actual product with its tabs, sidebar, ad blocker and Speed Dial. "Open in
+  the real browser" and external links launch it; stock Chromium remains only
+  as a fallback.
+- **Window-size tracking**: mainline vboxguest/vboxvideo kernel modules plus
+  VBoxClient extracted at build time from the host's own Guest Additions ISO -
+  the guest follows the VirtualBox window. X still pins 1920x1080 as the
+  starting point.
+- **Audio**: the VM scripts attach an HDA device (WASAPI host driver), so the
+  quick-settings volume slider drives real output via PipeWire.
+- **Maintenance access**: `su` works on any console - root password `konekt`.
+  A preview OS must never lock out its own owner.
+
 ## Updating itself
 
 The shell can update the system it runs on. Booted as KONEKT OS there is a
