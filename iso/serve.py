@@ -384,8 +384,6 @@ APP_CATALOGUE = [
      "repo": "https://github.com/vapesnuseu-cmyk/konekt-kouch.git"},
     {"id": "studio",   "name": "LASTOCHKA STUDIO", "url": "https://lastochka-studio.vercel.app/",
      "repo": "https://github.com/vapesnuseu-cmyk/lastochka-studio.git"},
-    {"id": "repo",     "name": "KONEKT REPO",      "url": "https://konekt-repo.vercel.app/",
-     "repo": "https://github.com/vapesnuseu-cmyk/konekt-repo.git"},
 ]
 APP_SHELL = "/opt/konekt-apps/shell"
 ELECTRON = "/opt/konekt-browser/node_modules/electron/dist/electron"

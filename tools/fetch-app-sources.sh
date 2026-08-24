@@ -36,8 +36,7 @@ skipped=0
 for spec in \
   "konekt|https://github.com/vapesnuseu-cmyk/konekt.git" \
   "koach|https://github.com/vapesnuseu-cmyk/konekt-kouch.git" \
-  "studio|https://github.com/vapesnuseu-cmyk/lastochka-studio.git" \
-  "repo|https://github.com/vapesnuseu-cmyk/konekt-repo.git" ; do
+  "studio|https://github.com/vapesnuseu-cmyk/lastochka-studio.git" ; do
   id="${spec%%|*}"; url="${spec##*|}"
   dest="$CACHE/$id"
 

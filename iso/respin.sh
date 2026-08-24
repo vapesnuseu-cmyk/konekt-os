@@ -214,7 +214,7 @@ cp -r "$REPO/iso/appshell" "$ROOTFS/opt/konekt-apps/shell"
 # The credential stays on that machine. Nothing here writes one into the image.
 if [ "${KONEKT_APP_SOURCES:-0}" = "1" ]; then
   cache="$REPO/dist/appsrc"
-  for id in konekt koach studio repo ; do
+  for id in konekt koach studio ; do
     if [ -d "$cache/$id" ]; then
       rm -rf "${ROOTFS:?}/opt/konekt-apps/src/$id"
       cp -r "$cache/$id" "$ROOTFS/opt/konekt-apps/src/$id"

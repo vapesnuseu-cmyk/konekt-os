@@ -1703,8 +1703,8 @@ function sysPost(path, body){
   }).then(r => r.json().then(d => { if(!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }));
 }
 
-const OS_VERSION = '1.9.0';
-const OS_BUILD = 2900;
+const OS_VERSION = '1.9.1';
+const OS_BUILD = 2910;
 let updateChecked = false, toastT = null;
 
 function cmpVer(a, b){
@@ -2375,7 +2375,6 @@ const APPS = {
   konekt: { name:'KONEKT',   icon: IC.globe, w:1080, h:700, launch: w => launchProduct(w, 'konekt', KONEKT_URL, 'KONEKT') },
   studio: { name:'LASTOCHKA', icon: IC.studio, w:1180, h:760, launch: w => launchProduct(w, 'studio', 'https://lastochka-studio.vercel.app/', 'LASTOCHKA STUDIO') },
   koach:  { name:'KOACH',    icon: IC.kouch, w:1120, h:720, launch: w => launchProduct(w, 'koach', 'https://konekt-kouch.vercel.app/', 'KONEKT KOACH') },
-  repo:   { name:'REPO',     icon: IC.files, w:1100, h:720, launch: w => launchProduct(w, 'repo', 'https://konekt-repo.vercel.app/', 'KONEKT REPO') },
   media:  { name:'MEDIA',    icon: IC.media, w:900,  h:600, launch: launchMedia },
   files:  { name:'FILES',    icon: IC.files, w:700,  h:480, launch: launchFiles },
   term:   { name:'TERMINAL', icon: IC.term,  w:640,  h:420, launch: launchTerm },
