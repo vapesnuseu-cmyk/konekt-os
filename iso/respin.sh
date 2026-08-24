@@ -186,12 +186,12 @@ fi
 # ---------------------------------------------------------------- real applications
 # a respin works from an existing filesystem, so the window manager has to be
 # fetched here rather than assumed from the package list
-if [ ! -x "$ROOTFS/usr/bin/openbox" ] || [ ! -x "$ROOTFS/usr/bin/git" ]; then
-  say "installing openbox and git into the tree"
+if [ ! -x "$ROOTFS/usr/bin/openbox" ]; then
+  say "installing openbox into the tree"
   mount --bind /proc "$ROOTFS/proc" 2>/dev/null || true
   mount --bind /dev  "$ROOTFS/dev"  2>/dev/null || true
   cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf.respin" 2>/dev/null || true
-  chroot "$ROOTFS" bash -c "apt-get update -qq && apt-get install -y -qq --no-install-recommends openbox git"     || echo "WARNING: openbox/git not installed - real app windows will be unmanaged"
+  chroot "$ROOTFS" bash -c "apt-get update -qq && apt-get install -y -qq --no-install-recommends openbox"     || echo "WARNING: openbox not installed - real app windows will be unmanaged"
   umount -l "$ROOTFS/proc" 2>/dev/null || true
   umount -l "$ROOTFS/dev"  2>/dev/null || true
 fi
@@ -200,23 +200,33 @@ say "installing the KONEKT products as real applications"
 mkdir -p "$ROOTFS/opt/konekt-apps/src"
 cp -r "$REPO/iso/appshell" "$ROOTFS/opt/konekt-apps/shell"
 
-# the products' own sources, from their repositories
-for spec in \
-  "konekt|https://github.com/vapesnuseu-cmyk/konekt.git" \
-  "koach|https://github.com/vapesnuseu-cmyk/konekt-kouch.git" \
-  "studio|https://github.com/vapesnuseu-cmyk/lastochka-studio.git" \
-  "repo|https://github.com/vapesnuseu-cmyk/konekt-repo.git" ; do
-  id="${spec%%|*}"; url="${spec##*|}"
-  dest="$ROOTFS/opt/konekt-apps/src/$id"
-  if [ ! -d "$dest" ]; then
-    if git clone --depth 1 --quiet "$url" "$dest" 2>/dev/null; then
-      rm -rf "$dest/.git"
+# The products' own source is NOT shipped by default, and this is deliberate.
+# Five of the six product repositories are private, and this ISO is published
+# for anyone to download - putting their source inside it would publish them
+# too. Nothing is lost by leaving it out: each product is installed as a real
+# application window onto its own deployment, which is what makes it real.
+#
+# To ship the source anyway, fetch it first on a machine that can already read
+# those repositories:
+#     bash tools/fetch-app-sources.sh
+# then build with:
+#     KONEKT_APP_SOURCES=1 bash iso/build.sh
+# The credential stays on that machine. Nothing here writes one into the image.
+if [ "${KONEKT_APP_SOURCES:-0}" = "1" ]; then
+  cache="$REPO/dist/appsrc"
+  for id in konekt koach studio repo ; do
+    if [ -d "$cache/$id" ]; then
+      rm -rf "${ROOTFS:?}/opt/konekt-apps/src/$id"
+      cp -r "$cache/$id" "$ROOTFS/opt/konekt-apps/src/$id"
+      rm -rf "$ROOTFS/opt/konekt-apps/src/$id/.git"
       say "  $id — source installed"
     else
-      echo "  WARNING: could not clone $url (private or offline); $id still runs from its deployment"
+      echo "  WARNING: $cache/$id is missing - run tools/fetch-app-sources.sh first"
     fi
-  fi
-done
+  done
+else
+  say "  source not shipped (private repositories) - each product runs from its deployment"
+fi
 chown -R 1000:1000 "$ROOTFS/opt/konekt-apps"
 
 say "rewriting the session"
