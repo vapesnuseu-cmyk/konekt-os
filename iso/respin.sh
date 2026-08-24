@@ -107,6 +107,47 @@ print("main.js: first-launch URL snippet added")
 PYEOF2
 fi
 
+
+# ---------------------------------------------------------------- guest additions
+# trixie has no virtualbox-guest packages; the kernel side (vboxguest,
+# vboxvideo) is mainline already. The userspace VBoxClient comes from the
+# host's own Guest Additions ISO - present wherever VirtualBox is installed.
+GA_ISO="${GA_ISO:-/mnt/c/Program Files/Oracle/VirtualBox/VBoxGuestAdditions.iso}"
+if [ -f "$GA_ISO" ] && [ ! -x "$ROOTFS/usr/bin/VBoxClient" ]; then
+  say "extracting VBoxClient from the host's Guest Additions ISO"
+  GA_TMP="$(mktemp -d)"
+  if mount -o loop,ro "$GA_ISO" "$GA_TMP" 2>/dev/null; then
+    cp "$GA_TMP/VBoxLinuxAdditions.run" /tmp/vbox-ga.run
+    umount "$GA_TMP"
+  else
+    bsdtar -xf "$GA_ISO" -C "$GA_TMP" VBoxLinuxAdditions.run 2>/dev/null || true
+    [ -f "$GA_TMP/VBoxLinuxAdditions.run" ] && cp "$GA_TMP/VBoxLinuxAdditions.run" /tmp/vbox-ga.run
+  fi
+  if [ -f /tmp/vbox-ga.run ]; then
+    sh /tmp/vbox-ga.run --noexec --nox11 --target "$GA_TMP/run" >/dev/null 2>&1 || true
+    GA_TAR="$(ls "$GA_TMP"/run/VBoxGuestAdditions-amd64.tar.bz2 2>/dev/null | head -1)"
+    if [ -n "$GA_TAR" ]; then
+      mkdir -p "$GA_TMP/tree"
+      tar -xjf "$GA_TAR" -C "$GA_TMP/tree"
+      for b in bin/VBoxClient bin/VBoxControl sbin/VBoxService; do
+        SRC="$GA_TMP/tree/$b"
+        [ -f "$SRC" ] && install -m 755 "$SRC" "$ROOTFS/usr/$b"
+      done
+      if [ -x "$ROOTFS/usr/bin/VBoxClient" ]; then
+        MISSING="$(chroot "$ROOTFS" ldd /usr/bin/VBoxClient 2>/dev/null | grep 'not found' || true)"
+        [ -z "$MISSING" ] && say "VBoxClient installed - the guest will follow the window size" \
+                          || echo "WARNING: VBoxClient missing libs: $MISSING"
+      fi
+    else
+      echo "WARNING: could not unpack the Guest Additions run file - resize stays manual"
+    fi
+    rm -f /tmp/vbox-ga.run
+  else
+    echo "WARNING: could not read $GA_ISO - resize stays manual"
+  fi
+  rm -rf "$GA_TMP"
+fi
+
 say "rewriting the session"
 cat > "$ROOTFS/home/konekt/.bash_profile" <<'EOF'
 if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
